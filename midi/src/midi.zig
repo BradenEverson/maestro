@@ -7,6 +7,7 @@ pub const HeaderChunk = @import("chunk.zig").HeaderChunk;
 pub const TrackChunk = @import("chunk.zig").TrackChunk;
 
 pub const MidiError = error{
+    WrongTag,
     TODO,
 };
 
