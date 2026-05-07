@@ -24,6 +24,8 @@ pub fn main(init: std.process.Init) !void {
 
     defer alloc.free(source);
 
-    const parsed = try Midi.fromBytes(alloc, source);
+    var parsed = try Midi.fromBytes(alloc, source);
+    defer parsed.deinit(alloc);
+
     std.debug.print("{any}\n", .{parsed});
 }
