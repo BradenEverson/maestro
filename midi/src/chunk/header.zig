@@ -34,3 +34,10 @@ format: Format,
 ntrks: u16,
 /// Time signature or division
 division: Division,
+
+const Header = @This();
+
+pub fn fromBytes(bytes: []const u8) !struct { Header, []const u8 } {
+    _ = bytes;
+    return error.TODO;
+}
