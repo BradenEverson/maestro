@@ -20,7 +20,7 @@ tracks: []const TrackChunk,
 const MIDI = @This();
 
 pub fn deinit(midi: *MIDI, alloc: Allocator) void {
-    alloc.free(midi.chunks);
+    alloc.free(midi.tracks);
 }
 
 pub fn fromBytes(alloc: Allocator, bytes: []const u8) !MIDI {
