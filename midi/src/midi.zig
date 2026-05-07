@@ -12,10 +12,10 @@ pub const MidiError = error{
 
 /// The very first chunk defines the format of the rest of the chunks and
 /// how many chunks are expected
-header_chunk: HeaderChunk,
+header: HeaderChunk,
 
 /// The remaining chunks describe the different tracks of the audio
-chunks: []const TrackChunk,
+tracks: []const TrackChunk,
 
 const MIDI = @This();
 
@@ -33,5 +33,12 @@ pub fn tryFromBytes(alloc: Allocator, bytes: []const u8) !MIDI {
     const tracks = try alloc.alloc(TrackChunk, @as(usize, header.ntrks));
     errdefer alloc.free(tracks);
 
-    return error.TODO;
+    for (tracks) |*track| {
+        track.*, rest = try TrackChunk.fromBytes(rest);
+    }
+
+    return .{
+        .header = header,
+        .tracks = tracks,
+    };
 }
