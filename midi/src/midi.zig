@@ -1,11 +1,22 @@
-//! MIDI File Parsing
+//! The MIDI file stored as a whole
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
-pub const Chunk = @import("chunk.zig");
+pub const Chunk = @import("chunk.zig").Chunk;
+pub const HeaderChunk = @import("chunk.zig").HeaderChunk;
+pub const TrackChunk = @import("chunk.zig").TrackChunk;
 
-chunks: []const Chunk,
+pub const MidiError = error{
+    TODO,
+};
+
+/// The very first chunk defines the format of the rest of the chunks and
+/// how many chunks are expected
+header_chunk: HeaderChunk,
+
+/// The remaining chunks describe the different tracks of the audio
+chunks: []const TrackChunk,
 
 const MIDI = @This();
 
@@ -17,7 +28,5 @@ pub fn tryFromBytes(bytes: []const u8) !MIDI {
     _ = bytes;
 
     // TODO
-    return .{
-        .chunks = &[0]Chunk{},
-    };
+    return error.TODO;
 }
