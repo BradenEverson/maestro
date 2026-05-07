@@ -3,7 +3,6 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
-pub const Chunk = @import("chunk.zig").Chunk;
 pub const HeaderChunk = @import("chunk.zig").HeaderChunk;
 pub const TrackChunk = @import("chunk.zig").TrackChunk;
 

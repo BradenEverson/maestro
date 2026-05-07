@@ -1,9 +1,4 @@
-//! A MIDI chunk :D
+//! A MIDI chunk is either a Header or Track chunk
 
 pub const HeaderChunk = @import("chunk/header.zig");
 pub const TrackChunk = @import("chunk/track.zig");
-
-pub const Chunk = union(enum) {
-    header: HeaderChunk,
-    track: TrackChunk,
-};
