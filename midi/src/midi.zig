@@ -23,14 +23,15 @@ pub fn deinit(midi: *MIDI, alloc: Allocator) void {
     alloc.free(midi.chunks);
 }
 
-pub fn tryFromBytes(bytes: []const u8) !MIDI {
+pub fn tryFromBytes(alloc: Allocator, bytes: []const u8) !MIDI {
     var rest = bytes;
     // Parse the header, this will give us number of tracks
     const header, rest = try HeaderChunk.fromBytes(rest);
-    _ = header;
 
     // Allocate amount of tracks the header specified,
     // then parse each track out
+    const tracks = try alloc.alloc(TrackChunk, @as(usize, header.ntrks));
+    errdefer alloc.free(tracks);
 
     return error.TODO;
 }
