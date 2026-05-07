@@ -1,5 +1,5 @@
 const std = @import("std");
-const midi = @import("midi");
+const Midi = @import("midi");
 
 pub fn main(init: std.process.Init) !void {
     const io = init.io;
@@ -24,5 +24,6 @@ pub fn main(init: std.process.Init) !void {
 
     defer alloc.free(source);
 
-    std.debug.print("{X}\n", .{source});
+    const parsed = try Midi.fromBytes(alloc, source);
+    std.debug.print("{any}\n", .{parsed});
 }
