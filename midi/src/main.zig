@@ -22,7 +22,7 @@ pub fn main(init: std.process.Init) !void {
         std.process.exit(1);
     }
 
-    errdefer alloc.free(source);
+    defer alloc.free(source);
 
     std.debug.print("{X}\n", .{source});
 }
