@@ -10,11 +10,12 @@ pub const MidiError = error{
     TODO,
 };
 
-/// The very first chunk defines the format of the rest of the chunks and
-/// how many chunks are expected
+/// The very first chunk defines the format of the rest
+/// of the chunks and how many chunks are expected
 header: HeaderChunk,
 
-/// The remaining chunks describe the different tracks of the audio
+/// The remaining chunks describe the different tracks
+/// of the audio
 tracks: []const TrackChunk,
 
 const MIDI = @This();
