@@ -74,6 +74,7 @@ pub fn fromBytes(
         return error.WrongTag;
 
     var rest = bytes[4..];
+    _, rest = chunk.bufferedIntRead(u32, rest);
 
     const format, rest = chunk.bufferedIntRead(u16, rest);
     const ntrks, rest = chunk.bufferedIntRead(u16, rest);
