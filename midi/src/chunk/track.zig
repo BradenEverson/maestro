@@ -54,7 +54,14 @@ pub const MTrkEvent = struct {
     pub fn fromBytes(
         bytes: []const u8,
     ) !struct { MTrkEvent, []const u8 } {
-        _ = bytes;
+        const dt = bytes[0];
+        var rest = bytes[1..];
+
+        const fb = rest[0];
+        rest = rest[1..];
+
+        std.debug.print("dt: {} - byte: {b}\n", .{ dt, fb });
+
         return error.TODO;
     }
 };
