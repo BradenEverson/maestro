@@ -36,7 +36,7 @@ pub fn fromBytes(alloc: Allocator, bytes: []const u8) !MIDI {
     errdefer alloc.free(tracks);
 
     for (tracks) |*track| {
-        track.*, rest = try TrackChunk.fromBytes(rest);
+        track.*, rest = try TrackChunk.fromBytes(alloc, rest);
     }
 
     return .{

@@ -1,13 +1,16 @@
 //! Track Chunk Definition
 
 const std = @import("std");
+const Allocator = std.mem.Allocator;
+
 const chunk = @import("../chunk.zig");
 
 const Track = @This();
 
-mtrk_events: std.ArrayList(MTrkEvent),
+mtrk_events: std.ArrayList(MTrkEvent) = .empty,
 
 pub fn fromBytes(
+    alloc: Allocator,
     bytes: []const u8,
 ) !struct {
     Track,
@@ -25,15 +28,35 @@ pub fn fromBytes(
     var rest = bytes[4..];
     const len, rest =
         chunk.bufferedIntRead(u32, rest);
+    rest = rest[0..len];
 
-    std.debug.print("{} bytes\n", .{len});
+    var result: Track = .{};
 
-    return error.TODO;
+    while (rest.len > 0) {
+        const event, rest = try MTrkEvent
+            .fromBytes(rest);
+        try result.mtrk_events.append(
+            alloc,
+            event,
+        );
+    }
+
+    return .{
+        result,
+        rest[len..],
+    };
 }
 
 pub const MTrkEvent = struct {
     delta_time: u32,
     event: Event,
+
+    pub fn fromBytes(
+        bytes: []const u8,
+    ) !struct { MTrkEvent, []const u8 } {
+        _ = bytes;
+        return error.TODO;
+    }
 };
 
 pub const Event = union(enum) {
