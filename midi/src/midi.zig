@@ -21,22 +21,35 @@ tracks: []const TrackChunk,
 
 const MIDI = @This();
 
-pub fn deinit(midi: *MIDI, alloc: Allocator) void {
+pub fn deinit(
+    midi: *MIDI,
+    alloc: Allocator,
+) void {
     alloc.free(midi.tracks);
 }
 
-pub fn fromBytes(alloc: Allocator, bytes: []const u8) !MIDI {
+pub fn fromBytes(
+    alloc: Allocator,
+    bytes: []const u8,
+) !MIDI {
     var rest = bytes;
     // Parse the header, this will give us number of tracks
-    const header, rest = try HeaderChunk.fromBytes(rest);
+    const header, rest = try HeaderChunk
+        .fromBytes(rest);
 
     // Allocate amount of tracks the header specified,
     // then parse each track out
-    const tracks = try alloc.alloc(TrackChunk, @as(usize, header.ntrks));
+    const tracks = try alloc.alloc(
+        TrackChunk,
+        @as(usize, header.ntrks),
+    );
     errdefer alloc.free(tracks);
 
     for (tracks) |*track| {
-        track.*, rest = try TrackChunk.fromBytes(alloc, rest);
+        track.*, rest = try TrackChunk.fromBytes(
+            alloc,
+            rest,
+        );
     }
 
     return .{
