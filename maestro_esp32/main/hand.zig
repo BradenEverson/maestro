@@ -13,12 +13,27 @@ const NOTE_COUNT: usize = @typeInfo(Note).@"enum".fields.len;
 
 const Hand = @This();
 
+pub fn noteFromInt(n: u8) Note {
+    return switch (n) {
+        24 => .c,
+        26 => .d,
+        28 => .e,
+        29 => .f,
+        31 => .g,
+        33 => .a,
+        35 => .b,
+
+        else => .c, // TODO: Not this (but if we do option we'll just unwrap it anyway)
+    };
+}
+
 pub fn init(
     notes: [NOTE_COUNT]idf.gpio.Num(),
     level: u8,
 ) !Hand {
     for (notes) |note| {
         try idf.gpio.Direction.set(note, .output);
+        try idf.gpio.Level.set(note, 0);
     }
 
     return .{ .note_gpios = notes, .level = level };

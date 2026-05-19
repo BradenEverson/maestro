@@ -4,6 +4,7 @@ const idf = @import("esp_idf");
 
 const MIDI = @import("midi");
 const Hand = @import("hand.zig");
+const Note = Hand.Note;
 
 const test_midi = @embedFile("v1keytest.mid");
 
@@ -34,26 +35,43 @@ export fn app_main() callconv(.c) void {
         return;
     };
 
-    while (true) {
-        log.info("On", .{});
-        hand.pressNote(.c) catch {};
-        hand.pressNote(.d) catch {};
-        hand.pressNote(.e) catch {};
-        hand.pressNote(.f) catch {};
-        hand.pressNote(.g) catch {};
-        hand.pressNote(.a) catch {};
-        hand.pressNote(.b) catch {};
-        idf.rtos.Task.delayMs(1000);
+    var idx: usize = 0;
+    var stopped: bool = false;
 
-        log.info("Off", .{});
-        hand.depressNote(.c) catch {};
-        hand.depressNote(.d) catch {};
-        hand.depressNote(.e) catch {};
-        hand.depressNote(.f) catch {};
-        hand.depressNote(.g) catch {};
-        hand.depressNote(.a) catch {};
-        hand.depressNote(.b) catch {};
-        idf.rtos.Task.delayMs(1000);
+    while (!stopped) {
+        const curr = midi.tracks[0].mtrk_events.items[idx];
+
+        idf.rtos.Task.delayMs(curr.delta_time);
+
+        switch (curr.event) {
+            .midi => |m| switch (m) {
+                .note_on => |on| {
+                    log.info("ON: {}\n", .{on.@"1".key});
+                    const note = Hand.noteFromInt(on.@"1".key);
+                    hand.pressNote(note) catch {};
+                },
+                .note_off => |off| {
+                    log.info("OFF: {}\n", .{off.@"1".key});
+                    const note = Hand.noteFromInt(off.@"1".key);
+                    hand.depressNote(note) catch {};
+                },
+            },
+
+            .meta => |m| switch (m) {
+                .end_of_track => stopped = true,
+                else => {},
+            },
+
+            .ignored => {},
+        }
+
+        idx += 1;
+    }
+
+    log.info("DONE", .{});
+
+    while (true) {
+        idf.rtos.Task.delayMs(100);
     }
 }
 
