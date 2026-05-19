@@ -5,11 +5,22 @@ const idf = @import("esp_idf");
 const MIDI = @import("midi");
 const Hand = @import("hand.zig");
 
+const test_midi = @embedFile("v1keytest.mid");
+
 const log = std.log.scoped(.maestro);
 
-const LED_PIN: idf.gpio.Num() = .@"2";
-
 export fn app_main() callconv(.c) void {
+    var heap: idf.heap.VPortAllocator = .init();
+    const alloc = heap.allocator();
+
+    var midi = MIDI.fromBytes(alloc, test_midi) catch |err| {
+        log.err("MIDI Parse Failed {s}", .{@errorName(err)});
+        return;
+    };
+    defer midi.deinit(alloc);
+
+    log.info("Parse Complete!", .{});
+
     var hand = Hand.init([_]idf.gpio.Num(){
         .@"1",
         .@"2",
