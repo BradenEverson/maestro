@@ -2,23 +2,46 @@ const std = @import("std");
 const builtin = @import("builtin");
 const idf = @import("esp_idf");
 
-const log = std.log.scoped(.blink);
+const MIDI = @import("midi");
+const Hand = @import("hand.zig");
+
+const log = std.log.scoped(.maestro);
 
 const LED_PIN: idf.gpio.Num() = .@"2";
 
 export fn app_main() callconv(.c) void {
-    log.info("GPIO Blink example — toggling GPIO{d}", .{@intFromEnum(LED_PIN)});
-
-    idf.gpio.Direction.set(LED_PIN, .output) catch |err| {
-        log.err("GPIO direction set failed: {s}", .{@errorName(err)});
+    var hand = Hand.init([_]idf.gpio.Num(){
+        .@"1",
+        .@"2",
+        .@"42",
+        .@"41",
+        .@"40",
+        .@"39",
+        .@"38",
+    }, 0) catch |err| {
+        log.err("Hand Init Failed :((( {s}", .{@errorName(err)});
         return;
     };
 
-    var led_on: u1 = 0;
     while (true) {
-        led_on ^= 1;
-        idf.gpio.Level.set(LED_PIN, led_on) catch {};
-        log.info("LED: {s}", .{if (led_on == 1) "ON" else "OFF"});
+        log.info("On", .{});
+        hand.pressNote(.c) catch {};
+        hand.pressNote(.d) catch {};
+        hand.pressNote(.e) catch {};
+        hand.pressNote(.f) catch {};
+        hand.pressNote(.g) catch {};
+        hand.pressNote(.a) catch {};
+        hand.pressNote(.b) catch {};
+        idf.rtos.Task.delayMs(1000);
+
+        log.info("Off", .{});
+        hand.depressNote(.c) catch {};
+        hand.depressNote(.d) catch {};
+        hand.depressNote(.e) catch {};
+        hand.depressNote(.f) catch {};
+        hand.depressNote(.g) catch {};
+        hand.depressNote(.a) catch {};
+        hand.depressNote(.b) catch {};
         idf.rtos.Task.delayMs(1000);
     }
 }

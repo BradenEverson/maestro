@@ -7,18 +7,23 @@ pub fn build(b: *std.Build) !void {
     });
     const optimize = b.standardOptimizeOption(.{});
 
-    const example = b.option([]const u8, "example", "Relative path (from project root) to the Zig source file") orelse "main/app.zig";
-
     const obj = b.addObject(.{
         .name = "app_zig",
         .root_module = b.createModule(.{
-            .root_source_file = b.path(example),
+            .root_source_file = b.path("main/app.zig"),
             .target = target,
             .optimize = optimize,
             .link_libc = true,
         }),
     });
     obj.root_module.addImport("esp_idf", idf_wrapped_modules(b));
+
+    const midi = b.dependency("midi", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
+    obj.root_module.addImport("midi", midi.module("midi"));
 
     const obj_install = b.addInstallArtifact(obj, .{
         .dest_dir = .{
