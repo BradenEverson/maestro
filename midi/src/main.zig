@@ -28,4 +28,9 @@ pub fn main(init: std.process.Init) !void {
     defer parsed.deinit(alloc);
 
     std.debug.print("{any}\n", .{parsed});
+
+    for (parsed.tracks) |track| {
+        for (track.mtrk_events.items) |event| if (event.event != .ignored)
+            std.debug.print("{}\n", .{event});
+    }
 }

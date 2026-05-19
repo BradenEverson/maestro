@@ -17,7 +17,7 @@ header: HeaderChunk,
 
 /// The remaining chunks describe the different tracks
 /// of the audio
-tracks: []const TrackChunk,
+tracks: []TrackChunk,
 
 const MIDI = @This();
 
@@ -25,6 +25,7 @@ pub fn deinit(
     midi: *MIDI,
     alloc: Allocator,
 ) void {
+    for (midi.tracks) |*track| track.deinit(alloc);
     alloc.free(midi.tracks);
 }
 

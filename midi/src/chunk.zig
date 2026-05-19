@@ -20,3 +20,15 @@ pub fn bufferedIntRead(comptime T: type, bytes: []const u8) struct { T, []const 
     const t = std.mem.readInt(T, bytes[0..t_bytes], .big);
     return .{ t, bytes[t_bytes..] };
 }
+
+pub fn readVarLen(bytes: []const u8) struct { u32, []const u8 } {
+    var result: u32 = 0;
+    var rest = bytes;
+    while (true) {
+        const b = rest[0];
+        rest = rest[1..];
+        result = (result << 7) | (b & 0x7F);
+        if (b & 0x80 == 0) break;
+    }
+    return .{ result, rest };
+}
