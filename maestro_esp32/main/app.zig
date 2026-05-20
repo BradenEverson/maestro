@@ -55,7 +55,7 @@ export fn app_main() callconv(.c) void {
                 (@as(u64, ticks_per_qn) * 1_000_000),
         );
 
-        if (delay_ticks > 0) idf.rtos.Task.delay(delay_ticks);
+        idf.rtos.Task.delay(delay_ticks);
 
         switch (curr.event) {
             .midi => |m| switch (m) {
