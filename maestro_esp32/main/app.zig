@@ -60,16 +60,18 @@ export fn app_main() callconv(.c) void {
         switch (curr.event) {
             .midi => |m| switch (m) {
                 .note_on => |on| {
-                    log.info("ON: {}\n", .{on.@"1".key});
                     const note = Hand.noteFromInt(on.@"1".key);
+                    log.info("ON: {}\n", .{note});
+
                     hand.pressNote(note) catch |err| {
                         log.err("Press failed :( {}", .{err});
                         return;
                     };
                 },
                 .note_off => |off| {
-                    log.info("OFF: {}\n", .{off.@"1".key});
                     const note = Hand.noteFromInt(off.@"1".key);
+                    log.info("OFF: {}\n", .{note});
+
                     hand.depressNote(note) catch |err| {
                         log.err("Depress failed :( {}", .{err});
                         return;
