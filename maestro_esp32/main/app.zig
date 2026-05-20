@@ -35,13 +35,27 @@ export fn app_main() callconv(.c) void {
         return;
     };
 
+    const RTOS_HZ: u32 = 1000;
+
+    if (midi.header.division != .metrical) {
+        log.err("Only metrical supported for now", .{});
+        return;
+    }
+
+    const ticks_per_qn: u32 = @intCast(midi.header.division.metrical);
+    var tempo_us: u32 = 500_000;
     var idx: usize = 0;
     var stopped: bool = false;
 
     while (!stopped) {
         const curr = midi.tracks[0].mtrk_events.items[idx];
 
-        idf.rtos.Task.delayMs(curr.delta_time);
+        const delay_ticks: u32 = @intCast(
+            (@as(u64, curr.delta_time) * tempo_us * RTOS_HZ) /
+                (@as(u64, ticks_per_qn) * 1_000_000),
+        );
+
+        if (delay_ticks > 0) idf.rtos.Task.delay(delay_ticks);
 
         switch (curr.event) {
             .midi => |m| switch (m) {
@@ -56,15 +70,21 @@ export fn app_main() callconv(.c) void {
                     hand.depressNote(note) catch {};
                 },
             },
-
             .meta => |m| switch (m) {
+                .set_tempo => |t| {
+                    tempo_us = t;
+                    log.info("Tempo: {} BPM\n", .{60_000_000 / @as(u32, t)});
+                },
+                .time_signature => |ts| {
+                    log.info("Time sig: {}/{}\n", .{
+                        ts.numerator,
+                        @as(u32, 1) << @intCast(ts.denominator),
+                    });
+                },
                 .end_of_track => stopped = true,
-                else => {},
             },
-
             .ignored => {},
         }
-
         idx += 1;
     }
 
