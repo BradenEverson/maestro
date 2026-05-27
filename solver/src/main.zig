@@ -1,5 +1,5 @@
 const std = @import("std");
-const Solver = @import("solver");
+const Solver = @import("solver").Solver;
 
 pub fn main(init: std.process.Init) !void {
     const io = init.io;
