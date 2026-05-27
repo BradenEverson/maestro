@@ -6,6 +6,10 @@ const Allocator = std.mem.Allocator;
 
 const Midi = @import("midi");
 
+const OCTAVE_SIZE: usize = 12;
+const PIANO_LEN: usize = 61;
+const HANDS: usize = 2;
+
 /// Black keys require that a hand be octave
 /// aligned, if we need to reach one we must
 /// ensure this alignment before knowing we
@@ -14,21 +18,28 @@ fn isBlackKey(key: usize) bool {
     const black_keys_octave =
         &[_]usize{ 1, 3, 6, 8, 10 };
 
-    const octave_idx = key % 12;
+    const octave_idx = key % OCTAVE_SIZE;
 
     return std.mem.find(usize, black_keys_octave, &[_]usize{octave_idx}) != null;
 }
 
 pub const Solver = struct {
     stream: Midi,
-    piano_len: usize = 61,
 
-    // First hand homes on the leftmost spot
     hand1: usize = 0,
-    // Second hand homes on the rightmost spot
-    hand2: usize = 60 - HAND_SIZE,
+    hand2: usize = 60 - OCTAVE_SIZE,
 
-    const HAND_SIZE: usize = 12;
+    hands: [HANDS]usize = [HANDS]usize{
+        // First hand homes on the leftmost spot
+        0,
+
+        // Second hand homes on the rightmost spot
+        60 - OCTAVE_SIZE,
+    },
+
+    fn isOctaveAligned(hand: usize) bool {
+        return hand % OCTAVE_SIZE == 0;
+    }
 
     pub fn init(alloc: Allocator, bytes: []const u8) !Solver {
         return .{
