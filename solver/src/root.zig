@@ -60,9 +60,6 @@ pub const MaestroCommand = union(enum) {
 pub const SolverError = Allocator.Error;
 
 pub const Solver = struct {
-    hand1: usize = 0,
-    hand2: usize = 60 - OCTAVE_SIZE,
-
     hands: [HANDS]usize = [HANDS]usize{
         // First hand homes on the leftmost spot
         0,
@@ -73,6 +70,19 @@ pub const Solver = struct {
 
     fn isOctaveAligned(hand: usize) bool {
         return hand % OCTAVE_SIZE == 0;
+    }
+
+    fn handsCover(
+        s: *Solver,
+        note: usize,
+    ) bool {
+        for (s.hands) |hand| {
+            if (hand <= note and
+                hand + OCTAVE_SIZE >= hand)
+                return true;
+        }
+
+        return false;
     }
 
     pub fn solve(
