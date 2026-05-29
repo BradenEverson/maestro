@@ -32,6 +32,7 @@ pub fn main(init: std.process.Init) !void {
     var solver: Solver = .{};
 
     var program = try solver.solve(
+        alloc,
         midi.tracks[0].mtrk_events.items,
     );
     defer program.deinit(alloc);

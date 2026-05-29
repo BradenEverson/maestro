@@ -59,13 +59,18 @@ pub const MaestroCommand = union(enum) {
 
 pub const SolverError = Allocator.Error;
 
+pub const HandInfo = struct {
+    index: usize,
+    pressing: [HANDS]bool = @splat(false),
+};
+
 pub const Solver = struct {
-    hands: [HANDS]usize = [HANDS]usize{
+    hands: [HANDS]HandInfo = [HANDS]HandInfo{
         // First hand homes on the leftmost spot
-        0,
+        .{ .index = 0 },
 
         // Second hand homes on the rightmost spot
-        60 - OCTAVE_SIZE,
+        .{ .index = 60 - OCTAVE_SIZE },
     },
 
     fn isOctaveAligned(hand: usize) bool {
@@ -86,9 +91,11 @@ pub const Solver = struct {
     }
 
     pub fn solve(
+        alloc: Allocator,
         solver: *Solver,
         stream: []Midi.TrackChunk.MTrkEvent,
     ) SolverError!MaestroProgram {
+        _ = alloc;
         _ = solver;
         _ = stream;
 
