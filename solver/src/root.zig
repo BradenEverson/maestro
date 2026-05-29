@@ -57,9 +57,9 @@ pub const MaestroCommand = union(enum) {
     },
 };
 
-pub const Solver = struct {
-    stream: Midi,
+pub const SolverError = Allocator.Error;
 
+pub const Solver = struct {
     hand1: usize = 0,
     hand2: usize = 60 - OCTAVE_SIZE,
 
@@ -75,14 +75,14 @@ pub const Solver = struct {
         return hand % OCTAVE_SIZE == 0;
     }
 
-    pub fn init(alloc: Allocator, bytes: []const u8) !Solver {
-        return .{
-            .stream = try Midi.fromBytes(alloc, bytes),
-        };
-    }
+    pub fn solve(
+        solver: *Solver,
+        stream: []Midi.TrackChunk.MTrkEvent,
+    ) SolverError!MaestroProgram {
+        _ = solver;
+        _ = stream;
 
-    pub fn deinit(solver: *Solver, alloc: Allocator) void {
-        solver.stream.deinit(alloc);
+        return .{};
     }
 };
 

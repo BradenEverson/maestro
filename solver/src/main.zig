@@ -1,6 +1,8 @@
 const std = @import("std");
 const Solver = @import("solver").Solver;
 
+const Midi = @import("midi");
+
 pub fn main(init: std.process.Init) !void {
     const io = init.io;
     const alloc = init.gpa;
@@ -24,6 +26,13 @@ pub fn main(init: std.process.Init) !void {
 
     defer alloc.free(source);
 
-    var parsed = try Solver.init(alloc, source);
-    defer parsed.deinit(alloc);
+    var midi = try Midi.fromBytes(alloc, source);
+    defer midi.deinit(alloc);
+
+    var solver: Solver = .{};
+
+    var program = try solver.solve(
+        midi.tracks[0].mtrk_events.items,
+    );
+    defer program.deinit(alloc);
 }
