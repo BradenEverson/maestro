@@ -20,8 +20,42 @@ fn isBlackKey(key: usize) bool {
 
     const octave_idx = key % OCTAVE_SIZE;
 
-    return std.mem.find(usize, black_keys_octave, &[_]usize{octave_idx}) != null;
+    return std.mem.find(
+        usize,
+        black_keys_octave,
+        &[_]usize{octave_idx},
+    ) != null;
 }
+
+pub const MaestroProgram = struct {
+    tempo: u24 = 0,
+    instructions: std.ArrayList(Instruction) = .empty,
+
+    pub fn deinit(
+        mp: *MaestroProgram,
+        alloc: Allocator,
+    ) void {
+        mp.instructions.deinit(alloc);
+    }
+};
+
+pub const Instruction = struct {
+    delta_time: usize,
+    cmd: MaestroCommand,
+};
+
+pub const MaestroCommand = union(enum) {
+    note_on: usize,
+    note_off: usize,
+    move_hand: struct {
+        /// Hand index
+        hand: usize,
+        direction: enum { left, right },
+        /// Number of white keys to move in that
+        /// direction
+        white_keys: usize,
+    },
+};
 
 pub const Solver = struct {
     stream: Midi,
