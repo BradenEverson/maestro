@@ -23,13 +23,13 @@ export fn app_main() callconv(.c) void {
     log.info("Parse Complete!", .{});
 
     var hand = Hand.init([_]idf.gpio.Num(){
-        .@"1",
-        .@"2",
-        .@"42",
-        .@"41",
-        .@"40",
-        .@"39",
-        .@"38",
+        .@"4",
+        .@"5",
+        .@"6",
+        .@"7",
+        .@"18",
+        .@"17",
+        .@"18",
     }, 0) catch |err| {
         log.err("Hand Init Failed :((( {s}", .{@errorName(err)});
         return;
