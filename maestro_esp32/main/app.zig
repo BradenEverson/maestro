@@ -47,6 +47,30 @@ export fn app_main() callconv(.c) void {
     var idx: usize = 0;
     var stopped: bool = false;
 
+    while (true) {
+        log.info("on", .{});
+        hand.pressNote(.c) catch unreachable;
+        hand.pressNote(.d) catch unreachable;
+        hand.pressNote(.e) catch unreachable;
+        hand.pressNote(.f) catch unreachable;
+        hand.pressNote(.g) catch unreachable;
+        hand.pressNote(.a) catch unreachable;
+        hand.pressNote(.b) catch unreachable;
+
+        idf.rtos.Task.delayMs(1000);
+
+        log.info("off", .{});
+        hand.depressNote(.c) catch unreachable;
+        hand.depressNote(.d) catch unreachable;
+        hand.depressNote(.e) catch unreachable;
+        hand.depressNote(.f) catch unreachable;
+        hand.depressNote(.g) catch unreachable;
+        hand.depressNote(.a) catch unreachable;
+        hand.depressNote(.b) catch unreachable;
+
+        idf.rtos.Task.delayMs(1000);
+    }
+
     while (!stopped) {
         const curr = midi.tracks[0].mtrk_events.items[idx];
 
