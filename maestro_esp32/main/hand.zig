@@ -8,7 +8,20 @@ level: u8,
 /// GPIO pins for the solonoids running each key
 note_gpios: [NOTE_COUNT]idf.gpio.Num(),
 
-pub const Note = enum(usize) { c, d, e, f, g, a, b };
+pub const Note = enum(usize) {
+    c,
+    d,
+    e,
+    f,
+    g,
+    a,
+    b,
+    csharp,
+    dsharp,
+    fsharp,
+    gsharp,
+    asharp,
+};
 const NOTE_COUNT: usize = @typeInfo(Note).@"enum".fields.len;
 
 const Hand = @This();

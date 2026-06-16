@@ -27,9 +27,14 @@ export fn app_main() callconv(.c) void {
         .@"5",
         .@"6",
         .@"7",
-        .@"18",
+        .@"15",
+        .@"16",
         .@"17",
         .@"18",
+        .@"8",
+        .@"3",
+        .@"46",
+        .@"9",
     }, 0) catch |err| {
         log.err("Hand Init Failed :((( {s}", .{@errorName(err)});
         return;
@@ -56,8 +61,13 @@ export fn app_main() callconv(.c) void {
         hand.pressNote(.g) catch unreachable;
         hand.pressNote(.a) catch unreachable;
         hand.pressNote(.b) catch unreachable;
+        hand.pressNote(.csharp) catch unreachable;
+        hand.pressNote(.dsharp) catch unreachable;
+        hand.pressNote(.fsharp) catch unreachable;
+        hand.pressNote(.gsharp) catch unreachable;
+        hand.pressNote(.asharp) catch unreachable;
 
-        idf.rtos.Task.delayMs(1000);
+        idf.rtos.Task.delayMs(100);
 
         log.info("off", .{});
         hand.depressNote(.c) catch unreachable;
@@ -67,8 +77,13 @@ export fn app_main() callconv(.c) void {
         hand.depressNote(.g) catch unreachable;
         hand.depressNote(.a) catch unreachable;
         hand.depressNote(.b) catch unreachable;
+        hand.depressNote(.csharp) catch unreachable;
+        hand.depressNote(.dsharp) catch unreachable;
+        hand.depressNote(.fsharp) catch unreachable;
+        hand.depressNote(.gsharp) catch unreachable;
+        hand.depressNote(.asharp) catch unreachable;
 
-        idf.rtos.Task.delayMs(1000);
+        idf.rtos.Task.delayMs(100);
     }
 
     while (!stopped) {
