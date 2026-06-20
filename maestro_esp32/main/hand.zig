@@ -46,6 +46,8 @@ pub fn noteFromInt(n: u8) Note {
 
 pub fn init(
     notes: [NOTE_COUNT]idf.gpio.Num(),
+    step: idf.gpio.Num(),
+    dir: idf.gpio.Num(),
     level: u8,
 ) !Hand {
     for (notes) |note| {
@@ -53,7 +55,16 @@ pub fn init(
         try idf.gpio.Level.set(note, 0);
     }
 
-    return .{ .note_gpios = notes, .level = level };
+    const stepper = try Stepper.init(
+        step,
+        dir,
+    );
+
+    return .{
+        .note_gpios = notes,
+        .level = level,
+        .stepper = stepper,
+    };
 }
 
 pub fn pressNote(self: *Hand, note: Note) !void {

@@ -22,20 +22,27 @@ export fn app_main() callconv(.c) void {
 
     log.info("Parse Complete!", .{});
 
-    var hand = Hand.init([_]idf.gpio.Num(){
-        .@"4",
-        .@"5",
-        .@"6",
-        .@"7",
-        .@"15",
-        .@"16",
-        .@"17",
-        .@"18",
-        .@"8",
-        .@"3",
-        .@"46",
-        .@"9",
-    }, 0) catch |err| {
+    var hand = Hand.init(
+        [_]idf.gpio.Num(){
+            .@"4",
+            .@"5",
+            .@"6",
+            .@"7",
+            .@"15",
+            .@"16",
+            .@"17",
+            .@"18",
+            .@"8",
+            .@"3",
+            .@"46",
+            .@"9",
+        },
+
+        .@"40",
+        .@"41",
+
+        0,
+    ) catch |err| {
         log.err("Hand Init Failed :((( {s}", .{@errorName(err)});
         return;
     };
