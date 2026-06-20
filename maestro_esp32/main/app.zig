@@ -38,8 +38,8 @@ export fn app_main() callconv(.c) void {
             .@"9",
         },
 
-        .@"40",
         .@"41",
+        .@"40",
 
         0,
     ) catch |err| {
@@ -60,39 +60,14 @@ export fn app_main() callconv(.c) void {
     var stopped: bool = false;
 
     while (true) {
-        log.info("on", .{});
-        hand.pressNote(.c) catch unreachable;
-        hand.pressNote(.d) catch unreachable;
-        hand.pressNote(.e) catch unreachable;
-        hand.pressNote(.f) catch unreachable;
-        hand.pressNote(.g) catch unreachable;
-        hand.pressNote(.a) catch unreachable;
-        hand.pressNote(.b) catch unreachable;
-
-        hand.pressNote(.csharp) catch unreachable;
-        hand.pressNote(.dsharp) catch unreachable;
-        hand.pressNote(.fsharp) catch unreachable;
-        hand.pressNote(.gsharp) catch unreachable;
-        hand.pressNote(.asharp) catch unreachable;
-
-        idf.rtos.Task.delayMs(100);
-
-        log.info("off", .{});
-        hand.depressNote(.c) catch unreachable;
-        hand.depressNote(.d) catch unreachable;
-        hand.depressNote(.e) catch unreachable;
-        hand.depressNote(.f) catch unreachable;
-        hand.depressNote(.g) catch unreachable;
-        hand.depressNote(.a) catch unreachable;
-        hand.depressNote(.b) catch unreachable;
-
-        hand.depressNote(.csharp) catch unreachable;
-        hand.depressNote(.dsharp) catch unreachable;
-        hand.depressNote(.fsharp) catch unreachable;
-        hand.depressNote(.gsharp) catch unreachable;
-        hand.depressNote(.asharp) catch unreachable;
-
-        idf.rtos.Task.delayMs(100);
+        for (0..400) |_| {
+            hand.stepper.step() catch unreachable;
+        }
+        hand.stepper.switchDirection(.left) catch unreachable;
+        for (0..400) |_| {
+            hand.stepper.step() catch unreachable;
+        }
+        hand.stepper.switchDirection(.right) catch unreachable;
     }
 
     while (!stopped) {

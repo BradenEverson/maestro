@@ -30,14 +30,14 @@ pub fn init(
     };
 }
 
-pub fn step(stepper: *Self) void {
+pub fn step(stepper: *Self) !void {
     try idf.gpio.Level.set(stepper.step_pin, 1);
     idf.rtos.Task.delayMs(1);
     try idf.gpio.Level.set(stepper.step_pin, 0);
     idf.rtos.Task.delayMs(1);
 }
 
-pub fn switchDirection(stepper: *Self, dir: Direction) void {
+pub fn switchDirection(stepper: *Self, dir: Direction) !void {
     if (stepper.direction != dir) {
         try idf.gpio.Level.set(
             stepper.direction_pin,

@@ -92,6 +92,4 @@ const stepsToLevel: usize = 1;
 pub fn moveToLevel(self: *Hand, to: usize) void {
     _ = self;
     _ = to;
-
-    self.stepper.
 }
