@@ -20,6 +20,7 @@ pub const Note = enum(usize) {
     g,
     a,
     b,
+
     csharp,
     dsharp,
     fsharp,
@@ -33,11 +34,16 @@ const Hand = @This();
 pub fn noteFromInt(n: u8) Note {
     return switch (n) {
         24 => .c,
+        25 => .csharp,
         26 => .d,
+        27 => .dsharp,
         28 => .e,
         29 => .f,
+        30 => .fsharp,
         31 => .g,
+        32 => .gsharp,
         33 => .a,
+        34 => .asharp,
         35 => .b,
 
         else => .c, // TODO: Not this (but if we do option we'll just unwrap it anyway)
