@@ -1,12 +1,16 @@
-//! One of the two hands that are at any point positioned on one of the scales
+//! One of the two hands that are at any point positioned on one
+//! of the scales
 
 const idf = @import("esp_idf");
+const Stepper = @import("stepper.zig");
 
 /// Which level of the scales is tha hand at
 level: u8,
 
 /// GPIO pins for the solonoids running each key
 note_gpios: [NOTE_COUNT]idf.gpio.Num(),
+
+stepper: Stepper,
 
 pub const Note = enum(usize) {
     c,
