@@ -2,16 +2,9 @@
 
 const idf = @import("esp_idf");
 
-const Direction = enum {
-    left,
-    right,
-
-    pub fn toDirectionLevel(dir: *Direction) u32 {
-        return switch (dir.*) {
-            .left => 0,
-            .right => 1,
-        };
-    }
+const Direction = enum(u32) {
+    left = 0,
+    right = 1,
 };
 
 step_pin: idf.gpio.Num(),
@@ -32,7 +25,7 @@ pub fn init(
 
     return .{
         .step_pin = step_pin,
-        .direction = .right, // TODO: default direction
+        .direction = @enumFromInt(0),
         .direction_pin = direction_pin,
     };
 }
@@ -48,7 +41,7 @@ pub fn switchDirection(stepper: *Self, dir: Direction) void {
     if (stepper.direction != dir) {
         try idf.gpio.Level.set(
             stepper.direction_pin,
-            dir.toDirectionLevel(),
+            @intFromEnum(dir),
         );
 
         stepper.direction = dir;
