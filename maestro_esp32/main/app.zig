@@ -68,6 +68,7 @@ export fn app_main() callconv(.c) void {
         hand.pressNote(.g) catch unreachable;
         hand.pressNote(.a) catch unreachable;
         hand.pressNote(.b) catch unreachable;
+
         hand.pressNote(.csharp) catch unreachable;
         hand.pressNote(.dsharp) catch unreachable;
         hand.pressNote(.fsharp) catch unreachable;
@@ -84,6 +85,7 @@ export fn app_main() callconv(.c) void {
         hand.depressNote(.g) catch unreachable;
         hand.depressNote(.a) catch unreachable;
         hand.depressNote(.b) catch unreachable;
+
         hand.depressNote(.csharp) catch unreachable;
         hand.depressNote(.dsharp) catch unreachable;
         hand.depressNote(.fsharp) catch unreachable;

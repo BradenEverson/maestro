@@ -86,3 +86,12 @@ pub fn depressNote(self: *Hand, note: Note) !void {
 
     try idf.gpio.Level.set(selection, 0);
 }
+
+const stepsToLevel: usize = 1;
+
+pub fn moveToLevel(self: *Hand, to: usize) void {
+    _ = self;
+    _ = to;
+
+    self.stepper.
+}
