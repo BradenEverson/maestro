@@ -44,9 +44,15 @@ pub const Instruction = struct {
     cmd: MaestroCommand,
 };
 
+pub const NoteInfo = struct {
+    hand: usize,
+    relative_note: usize,
+};
+
 pub const MaestroCommand = union(enum) {
-    note_on: usize,
-    note_off: usize,
+    note_on: NoteInfo,
+    note_off: NoteInfo,
+
     move_hand: struct {
         /// Hand index
         hand: usize,
@@ -61,7 +67,7 @@ pub const SolverError = Allocator.Error;
 
 pub const HandInfo = struct {
     index: usize,
-    pressing: [HANDS]bool = @splat(false),
+    pressing: [OCTAVE_SIZE]bool = @splat(false),
 };
 
 pub const Solver = struct {
@@ -77,17 +83,45 @@ pub const Solver = struct {
         return hand % OCTAVE_SIZE == 0;
     }
 
+    fn handFree(
+        s: *const Solver,
+        hand: usize,
+    ) bool {
+        var all_open = true;
+        for (s.hands[hand].pressing) |pressing| {
+            all_open = all_open and !pressing;
+        }
+    }
+
     fn handsCover(
-        s: *Solver,
+        s: *const Solver,
         note: usize,
     ) bool {
         for (s.hands) |hand| {
             if (hand <= note and
-                hand + OCTAVE_SIZE >= hand)
+                hand + OCTAVE_SIZE >= note)
                 return true;
         }
 
         return false;
+    }
+
+    fn whichKeyCovers(
+        s: *const Solver,
+        note: usize,
+    ) ?NoteInfo {
+        for (s.hands, 0..) |hand, hand_idx| {
+            if (hand <= note and
+                hand + OCTAVE_SIZE >= note)
+            {
+                return .{
+                    .hand = hand_idx,
+                    .relative_note = note - hand,
+                };
+            }
+        }
+
+        return null;
     }
 
     pub fn solve(
@@ -113,6 +147,7 @@ pub const Solver = struct {
                         program.tempo = tempo;
                     },
                     .end_of_track => break,
+                    else => {},
                 },
                 else => {},
             }
