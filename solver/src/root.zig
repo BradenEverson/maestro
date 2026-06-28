@@ -91,15 +91,36 @@ pub const Solver = struct {
     }
 
     pub fn solve(
-        alloc: Allocator,
         solver: *Solver,
+        alloc: Allocator,
         stream: []Midi.TrackChunk.MTrkEvent,
     ) SolverError!MaestroProgram {
-        _ = alloc;
         _ = solver;
-        _ = stream;
 
-        return .{};
+        var program: MaestroProgram = .{};
+        errdefer program.deinit(alloc);
+
+        var timer_sim: usize = 0;
+
+        for (stream) |evt| {
+            switch (evt.event) {
+                .midi => |m| switch (m) {
+                    .note_on => {},
+                    .note_off => {},
+                },
+                .meta => |m| switch (m) {
+                    .set_tempo => |tempo| {
+                        program.tempo = tempo;
+                    },
+                    .end_of_track => break,
+                },
+                else => {},
+            }
+
+            timer_sim += evt.delta_time;
+        }
+
+        return program;
     }
 };
 
