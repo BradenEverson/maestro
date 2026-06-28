@@ -36,4 +36,8 @@ pub fn main(init: std.process.Init) !void {
         midi.tracks[0].mtrk_events.items,
     );
     defer program.deinit(alloc);
+
+    for (program.instructions.items) |instr| {
+        std.debug.print("{any}\n", .{instr});
+    }
 }
