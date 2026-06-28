@@ -3,6 +3,7 @@
 
 const idf = @import("esp_idf");
 const Stepper = @import("stepper.zig");
+const Direction = @import("solver").Direction;
 
 /// Which level of the scales is tha hand at
 level: u8,
@@ -87,9 +88,28 @@ pub fn depressNote(self: *Hand, note: Note) !void {
     try idf.gpio.Level.set(selection, 0);
 }
 
-const stepsToLevel: usize = 1;
+// pub fn pressNote(self: *Hand, note: usize) !void {
+//     const selection = self
+//         .note_gpios[note];
+//
+//     try idf.gpio.Level.set(selection, 1);
+// }
+//
+// pub fn depressNote(self: *Hand, note: usize) !void {
+//     const selection = self
+//         .note_gpios[note];
+//
+//     try idf.gpio.Level.set(selection, 0);
+// }
 
-pub fn moveToLevel(self: *Hand, to: usize) void {
-    _ = self;
-    _ = to;
+const stepsToLevel: usize = 233;
+
+pub fn moveNote(
+    self: *Hand,
+    direction: Direction,
+) !void {
+    try self.stepper.switchDirection(direction);
+    for (0..233) |_| {
+        try self.stepper.step();
+    }
 }

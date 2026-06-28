@@ -12,6 +12,10 @@
             .url = "../midi",
             .hash = "midi-0.0.0-L3ZubjZhAAAg8MiMvOLDiu26Pfh_u9tvG2QuxtoMGUXj",
         },
+        .solver = .{
+            .url = "../solver",
+            .hash = "solver-0.0.0-bA3jKLssAAD2g_ZAbtCtQlrtyHYYAVHrmJKc-crs-yfV",
+        },
     },
     .paths = .{
         // This makes *all* files, recursively, included in this package. It is generally

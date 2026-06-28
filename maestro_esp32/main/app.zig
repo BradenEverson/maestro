@@ -6,6 +6,8 @@ const MIDI = @import("midi");
 const Hand = @import("hand.zig");
 const Note = Hand.Note;
 
+const Solver = @import("solver").Solver;
+
 const test_midi = @embedFile("v1keytest.mid");
 
 const log = std.log.scoped(.maestro);
@@ -21,6 +23,16 @@ export fn app_main() callconv(.c) void {
     defer midi.deinit(alloc);
 
     log.info("Parse Complete!", .{});
+    log.info("Solving MIDI!", .{});
+
+    var solver = Solver{};
+    var maestro_program = solver.solve(
+        alloc,
+        midi.tracks[0].mtrk_events.items,
+    ) catch unreachable;
+    defer maestro_program.deinit(alloc);
+
+    log.info("Solve Complete!", .{});
 
     var hand = Hand.init(
         [_]idf.gpio.Num(){
@@ -55,68 +67,49 @@ export fn app_main() callconv(.c) void {
     }
 
     const ticks_per_qn: u32 = @intCast(midi.header.division.metrical);
-    var tempo_us: u32 = 500_000;
-    var idx: usize = 0;
-    var stopped: bool = false;
 
-    while (true) {
-        for (0..400) |_| {
-            hand.stepper.step() catch unreachable;
-        }
-        hand.stepper.switchDirection(.left) catch unreachable;
-        for (0..400) |_| {
-            hand.stepper.step() catch unreachable;
-        }
-        hand.stepper.switchDirection(.right) catch unreachable;
-    }
+    const tempo_us = maestro_program.tempo;
+    log.info("Tempo: {} BPM\n", .{60_000_000 / @as(u32, tempo_us)});
 
-    while (!stopped) {
-        const curr = midi.tracks[0].mtrk_events.items[idx];
-
+    for (maestro_program.instructions.items) |instr| {
         const delay_ticks: u32 = @intCast(
-            (@as(u64, curr.delta_time) * tempo_us * RTOS_HZ) /
+            (@as(u64, instr.delta_time) * tempo_us * RTOS_HZ) /
                 (@as(u64, ticks_per_qn) * 1_000_000),
         );
 
-        idf.rtos.Task.delay(delay_ticks);
-
-        switch (curr.event) {
-            .midi => |m| switch (m) {
-                .note_on => |on| {
-                    const note = Hand.noteFromInt(on.@"1".key);
-                    log.info("ON: {}\n", .{note});
-
-                    hand.pressNote(note) catch |err| {
-                        log.err("Press failed :( {}", .{err});
-                        return;
-                    };
-                },
-                .note_off => |off| {
-                    const note = Hand.noteFromInt(off.@"1".key);
-                    log.info("OFF: {}\n", .{note});
-
-                    hand.depressNote(note) catch |err| {
-                        log.err("Depress failed :( {}", .{err});
-                        return;
-                    };
-                },
-            },
-            .meta => |m| switch (m) {
-                .set_tempo => |t| {
-                    tempo_us = t;
-                    log.info("Tempo: {} BPM\n", .{60_000_000 / @as(u32, t)});
-                },
-                .time_signature => |ts| {
-                    log.info("Time sig: {}/{}\n", .{
-                        ts.numerator,
-                        @as(u32, 1) << @intCast(ts.denominator),
-                    });
-                },
-                .end_of_track => stopped = true,
-            },
-            .ignored => {},
+        log.info("{any} - {}", .{ instr, delay_ticks });
+        if (delay_ticks > 0) {
+            idf.rtos.Task.delay(delay_ticks);
         }
-        idx += 1;
+
+        switch (instr.cmd) {
+            .note_on => |note_on| {
+                // TODO: Eventually, we will have two hands
+                // for now, treat it all as a command to this
+                // one hand :)
+
+                log.info("ON: {}", .{note_on.relative_note});
+                hand.pressNote(note_on.relative_note) catch unreachable;
+            },
+
+            .note_off => |note_off| {
+                // TODO: Same deal
+                log.info("OFF: {}", .{note_off.relative_note});
+                hand.depressNote(note_off.relative_note) catch unreachable;
+            },
+
+            .move_hand => |move_info| {
+                // TODO: same deal, hand will eventually be
+                // many hands woohooo
+                log.info("MOVING {} keys {any}", .{ move_info.white_keys, move_info.direction });
+
+                for (0..move_info.white_keys) |_|
+                    hand.moveNote(move_info.direction) catch {
+                        log.err("Move Failed!!!", .{});
+                        unreachable;
+                    };
+            },
+        }
     }
 
     log.info("DONE", .{});

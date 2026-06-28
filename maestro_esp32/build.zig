@@ -25,6 +25,13 @@ pub fn build(b: *std.Build) !void {
 
     obj.root_module.addImport("midi", midi.module("midi"));
 
+    const solver = b.dependency("solver", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
+    obj.root_module.addImport("solver", solver.module("solver"));
+
     const obj_install = b.addInstallArtifact(obj, .{
         .dest_dir = .{
             .override = .{

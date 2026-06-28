@@ -1,11 +1,7 @@
 //! Stepper motor control!!
 
 const idf = @import("esp_idf");
-
-const Direction = enum(u32) {
-    left = 0,
-    right = 1,
-};
+const Direction = @import("solver").Direction;
 
 step_pin: idf.gpio.Num(),
 direction_pin: idf.gpio.Num(),

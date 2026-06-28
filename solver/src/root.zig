@@ -52,12 +52,17 @@ pub const NoteInfo = struct {
     relative_note: usize,
 };
 
+pub const Direction = enum(u32) {
+    left = 0,
+    right = 1,
+};
+
 pub const MaestroCommand = union(enum) {
     note_on: NoteInfo,
     note_off: NoteInfo,
     move_hand: struct {
         hand: usize,
-        direction: enum { left, right },
+        direction: Direction,
         white_keys: usize,
     },
 };
@@ -135,7 +140,7 @@ pub const Solver = struct {
             .cmd = .{ .move_hand = .{
                 .hand = hand_idx,
                 .direction = if (dist > 0) .right else .left,
-                .white_keys = @abs(dist),
+                .white_keys = @truncate(@abs(dist)),
             } },
         });
         s.hands[hand_idx].index = new_pos;
