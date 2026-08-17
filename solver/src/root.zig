@@ -72,11 +72,67 @@ pub const SolverError = Allocator.Error || error{NoFreeHandAvailable};
 pub const HandInfo = struct {
     index: usize,
     pressing: [OCTAVE_SIZE]bool = @splat(false),
+
+    pub fn isFree(hand: *const HandInfo) bool {
+        for (hand.pressing) |key|
+            if (key) return false;
+
+        return true;
+    }
+
+    pub fn lowestUsed(hand: *const HandInfo) ?usize {
+        if (!hand.isFree())
+            return null;
+
+        var idx: usize = 0;
+        for (hand.pressing) |key| {
+            if (key)
+                return idx;
+
+            idx += 1;
+        }
+    }
+};
+
+pub const Hand = enum {
+    left,
+    right,
 };
 
 pub const Solver = struct {
     left: HandInfo = .{ .index = 0 },
     right: HandInfo = .{ .index = PIANO_LEN - OCTAVE_SIZE },
+
+    fn getHand(solver: *Solver, hand: Hand) *HandInfo {
+        return switch (hand) {
+            .left => &solver.left,
+            .right => &solver.right,
+        };
+    }
+
+    fn bounds(
+        solver: *Solver,
+        hand: Hand,
+    ) ?struct { left: usize, right: usize } {
+        var hand_choice = solver.getHand(hand).*;
+
+        if (!hand_choice.isFree())
+            // No bounds if we aren't yet bounded!
+            return null;
+
+        const lowest_closed: usize = hand_choice.lowestUsed().?;
+        // var highest_closed: usize = lowest_closed;
+
+        while (hand_choice.isFree()) {
+            // TODO: need to store events in solver and
+            // move forward until the hands are all free
+        }
+
+        return .{
+            .left = lowest_closed,
+            .right = 0,
+        };
+    }
 
     pub fn feed(
         solver: *Solver,
