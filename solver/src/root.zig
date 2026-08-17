@@ -86,8 +86,24 @@ pub const Solver = struct {
     ) !void {
         _ = solver;
         _ = alloc;
-        _ = program;
-        _ = event;
+
+        switch (event.event) {
+            .midi => |midi| switch (midi) {
+                .note_on => |note_on| {
+                    const key = note_on.@"1".key;
+                    std.debug.print("{} {} on\n", .{ event.timestamp, key });
+                },
+                .note_off => |note_off| {
+                    const key = note_off.@"1".key;
+                    std.debug.print("{} {} off\n", .{ event.timestamp, key });
+                },
+            },
+            .meta => |meta| switch (meta) {
+                .set_tempo => |tempo| program.tempo = tempo,
+                else => {},
+            },
+            .ignored => {},
+        }
     }
 };
 

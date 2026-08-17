@@ -36,6 +36,11 @@ pub fn main(init: std.process.Init) !void {
 
     defer program.deinit(alloc);
 
-    for (midi.tracks[0].mtrk_events.items) |event|
-        try solver.feed(alloc, &program, event);
+    var timestamp: u32 = 0;
+
+    for (midi.tracks[0].mtrk_events.items) |*event| {
+        event.timestamp = timestamp + event.delta_time;
+        try solver.feed(alloc, &program, event.*);
+        timestamp += event.delta_time;
+    }
 }
