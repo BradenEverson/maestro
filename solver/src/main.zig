@@ -1,5 +1,7 @@
 const std = @import("std");
-const Solver = @import("solver").Solver;
+const maestro_solver = @import("solver");
+const Solver = maestro_solver.Solver;
+const MaestroProgram = maestro_solver.MaestroProgram;
 
 const Midi = @import("midi");
 
@@ -30,14 +32,10 @@ pub fn main(init: std.process.Init) !void {
     defer midi.deinit(alloc);
 
     var solver: Solver = .{};
+    var program: MaestroProgram = .{};
 
-    var program = try solver.solve(
-        alloc,
-        midi.tracks[0].mtrk_events.items,
-    );
     defer program.deinit(alloc);
 
-    for (program.instructions.items) |instr| {
-        std.debug.print("{any}\n", .{instr});
-    }
+    for (midi.tracks[0].mtrk_events.items) |event|
+        try solver.feed(alloc, &program, event);
 }
