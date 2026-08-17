@@ -31,16 +31,12 @@ pub fn main(init: std.process.Init) !void {
     var midi = try Midi.fromBytes(alloc, source);
     defer midi.deinit(alloc);
 
-    var solver: Solver = .{};
+    var solver: Solver = .{
+        .instructions = midi.tracks[0].mtrk_events.items,
+    };
     var program: MaestroProgram = .{};
 
     defer program.deinit(alloc);
 
-    var timestamp: u32 = 0;
-
-    for (midi.tracks[0].mtrk_events.items) |*event| {
-        event.timestamp = timestamp + event.delta_time;
-        try solver.feed(alloc, &program, event.*);
-        timestamp += event.delta_time;
-    }
+    try solver.solve(alloc, &program);
 }

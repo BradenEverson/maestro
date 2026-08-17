@@ -103,6 +103,9 @@ pub const Solver = struct {
     left: HandInfo = .{ .index = 0 },
     right: HandInfo = .{ .index = PIANO_LEN - OCTAVE_SIZE },
 
+    instructions: []Midi.TrackChunk.MTrkEvent,
+    instruction_pointer: usize = 0,
+
     fn getHand(solver: *Solver, hand: Hand) *HandInfo {
         return switch (hand) {
             .left => &solver.left,
@@ -138,10 +141,10 @@ pub const Solver = struct {
         solver: *Solver,
         alloc: Allocator,
         program: *MaestroProgram,
-        event: Midi.TrackChunk.MTrkEvent,
     ) !void {
-        _ = solver;
         _ = alloc;
+
+        const event = solver.instructions[solver.instruction_pointer];
 
         switch (event.event) {
             .midi => |midi| switch (midi) {
@@ -159,6 +162,18 @@ pub const Solver = struct {
                 else => {},
             },
             .ignored => {},
+        }
+
+        solver.instruction_pointer += 1;
+    }
+
+    pub fn solve(solver: *Solver, alloc: Allocator, program: *MaestroProgram) !void {
+        var timestamp: u32 = 0;
+
+        for (solver.instructions) |*event| {
+            event.timestamp = timestamp + event.delta_time;
+            try solver.feed(alloc, program);
+            timestamp += event.delta_time;
         }
     }
 };
