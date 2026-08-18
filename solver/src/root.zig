@@ -80,6 +80,23 @@ pub const HandInfo = struct {
         return true;
     }
 
+    pub fn covers(hand: *const HandInfo, global_key: usize) bool {
+        return (global_key >= hand.index) and
+            (global_key < hand.index + OCTAVE_SIZE);
+    }
+
+    pub fn getKey(hand: *HandInfo, key: usize) *bool {
+        return &hand.pressing[key];
+    }
+
+    pub fn getGlobalKey(hand: *HandInfo, global_key: usize) ?*bool {
+        if (!hand.covers(global_key)) {
+            return null;
+        }
+
+        return &hand.pressing[global_key - hand.index];
+    }
+
     pub fn lowestUsed(hand: *const HandInfo) ?usize {
         if (!hand.isFree())
             return null;
@@ -87,10 +104,12 @@ pub const HandInfo = struct {
         var idx: usize = 0;
         for (hand.pressing) |key| {
             if (key)
-                return idx;
+                break;
 
             idx += 1;
         }
+
+        return idx;
     }
 };
 
@@ -123,8 +142,8 @@ pub const Solver = struct {
             // No bounds if we aren't yet bounded!
             return null;
 
-        const lowest_closed: usize = hand_choice.lowestUsed().?;
-        // var highest_closed: usize = lowest_closed;
+        const lowest_closed: usize = hand_choice.lowestUsed().? + hand_choice.index;
+        var highest_closed: usize = lowest_closed;
 
         var future_idx: usize = solver.instruction_pointer;
         while (hand_choice.isFree()) {
@@ -133,16 +152,37 @@ pub const Solver = struct {
                 const midi = event.event.midi;
 
                 switch (midi) {
-                    .note_on => {},
-                    .note_off => {},
+                    .note_on => |note| {
+                        const key_if_covers = hand_choice
+                            .getGlobalKey(@as(usize, note.@"1".key));
+
+                        if (key_if_covers) |key| {
+                            key.* = true;
+                        }
+
+                        highest_closed = @as(usize, note.@"1".key);
+                    },
+
+                    .note_off => |note| {
+                        const key_if_covers = hand_choice
+                            .getGlobalKey(@as(usize, note.@"1".key));
+
+                        if (key_if_covers) |key| {
+                            key.* = false;
+                        }
+                    },
                 }
+            } else if (event.event == .meta and
+                event.event.meta == .end_of_track)
+            {
+                break;
             }
             future_idx += 1;
         }
 
         return .{
             .left = lowest_closed,
-            .right = 0,
+            .right = future_idx,
         };
     }
 
@@ -160,6 +200,9 @@ pub const Solver = struct {
                 .note_on => |note_on| {
                     const key = note_on.@"1".key;
                     std.debug.print("{} {} on\n", .{ event.timestamp, key });
+
+                    const new_bounds = solver.bounds(.left);
+                    std.debug.print("{any}\n", .{new_bounds});
                 },
                 .note_off => |note_off| {
                     const key = note_off.@"1".key;
