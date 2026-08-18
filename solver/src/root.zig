@@ -126,9 +126,18 @@ pub const Solver = struct {
         const lowest_closed: usize = hand_choice.lowestUsed().?;
         // var highest_closed: usize = lowest_closed;
 
+        var future_idx: usize = solver.instruction_pointer;
         while (hand_choice.isFree()) {
-            // TODO: need to store events in solver and
-            // move forward until the hands are all free
+            const event = solver.instructions[future_idx];
+            if (event.event == .midi) {
+                const midi = event.event.midi;
+
+                switch (midi) {
+                    .note_on => {},
+                    .note_off => {},
+                }
+            }
+            future_idx += 1;
         }
 
         return .{
