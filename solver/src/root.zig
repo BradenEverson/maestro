@@ -9,6 +9,7 @@ const PIANO_LEN: usize = 61;
 const HANDS: usize = 1;
 
 const TIME_TO_MOVE_KEY: usize = 1; // time in ms it takes to move a single key
+const KEY_OFFSET: usize = 36; // How many keys back we are when translating from sequencer to keyboard
 
 fn isBlackKey(key: usize) bool {
     const octave_idx = key % OCTAVE_SIZE;
@@ -25,6 +26,13 @@ fn whiteKeysBefore(pos: usize) usize {
         if (!isBlackKey(i)) count += 1;
     }
     return count;
+}
+
+fn slotTypeMatches(hand_index: usize, key: usize) bool {
+    if (isBlackKey(key)) {
+        return hand_index % OCTAVE_SIZE == 0;
+    }
+    return isBlackKey(key) == isBlackKey(key - hand_index);
 }
 
 fn whiteKeyDistance(from: usize, to: usize) usize {
@@ -71,7 +79,7 @@ pub const MaestroCommand = union(enum) {
     move_hand: struct {
         hand: Hand,
         direction: Direction,
-        time: usize,
+        white_keys: usize,
     },
 };
 
@@ -80,49 +88,6 @@ pub const SolverError = Allocator.Error || error{NoFreeHandAvailable};
 pub const HandInfo = struct {
     index: usize,
     pressing: [OCTAVE_SIZE]bool = @splat(false),
-
-    pub fn timeToGetThere(hand: *const HandInfo, go_to: usize) usize {
-        if (hand.covers(go_to)) {
-            return 0;
-        } else if (isBlackKey(go_to)) {
-            const octave = go_to / OCTAVE_SIZE;
-            const ocave_start = octave * OCTAVE_SIZE;
-
-            if (go_to > hand.index) {
-                return whiteKeyDistance(hand.index, ocave_start) * TIME_TO_MOVE_KEY;
-            } else {
-                return whiteKeyDistance(hand.index, ocave_start + OCTAVE_SIZE - 1) * TIME_TO_MOVE_KEY;
-            }
-        } else {
-            if (go_to > hand.index) {
-                // Measure from the far end of the hand
-                const earliest_to_get_there = hand.index + OCTAVE_SIZE - 1;
-                return whiteKeyDistance(earliest_to_get_there, go_to) * TIME_TO_MOVE_KEY;
-            } else {
-                // Move from left end of the hand
-                return whiteKeyDistance(hand.index, go_to) * TIME_TO_MOVE_KEY;
-            }
-        }
-    }
-
-    pub fn moveTo(hand: *HandInfo, go_to: usize) void {
-        if (hand.covers(go_to)) {
-            return;
-        } else if (isBlackKey(go_to)) {
-            const octave = go_to / OCTAVE_SIZE;
-            const ocave_start = octave * OCTAVE_SIZE;
-
-            hand.index = ocave_start;
-        } else {
-            if (go_to > hand.index) {
-                // Go from the far end of the hand
-                hand.index = go_to - OCTAVE_SIZE + 1;
-            } else {
-                // Move from early end of the hand
-                hand.index = go_to;
-            }
-        }
-    }
 
     pub fn isFree(hand: *const HandInfo) bool {
         for (hand.pressing) |key|
@@ -136,14 +101,52 @@ pub const HandInfo = struct {
     }
 
     pub fn covers(hand: *const HandInfo, global_key: usize) bool {
-        if (isBlackKey(global_key)) {
-            return hand.isOctaveAligned() and
-                (global_key >= hand.index) and
-                (global_key < hand.index + OCTAVE_SIZE);
-        } else {
-            return (global_key >= hand.index) and
-                (global_key < hand.index + OCTAVE_SIZE);
+        return (global_key >= hand.index) and
+            (global_key < hand.index + OCTAVE_SIZE) and
+            slotTypeMatches(hand.index, global_key);
+    }
+
+    fn nearestValidIndex(hand: *const HandInfo, go_to: usize) usize {
+        if (isBlackKey(go_to)) {
+            const octave = go_to / OCTAVE_SIZE;
+            return octave * OCTAVE_SIZE;
         }
+
+        const naive: usize = if (go_to > hand.index)
+            go_to -| (OCTAVE_SIZE - 1)
+        else
+            go_to;
+
+        const candidate = naive;
+        var offset: usize = 0;
+        while (offset < OCTAVE_SIZE) : (offset += 1) {
+            const try_idx = if (candidate >= offset) candidate - offset else candidate + offset;
+            if (slotTypeMatches(try_idx, go_to) and
+                go_to >= try_idx and go_to < try_idx + OCTAVE_SIZE)
+            {
+                return try_idx;
+            }
+            const try_idx2 = candidate + offset;
+            if (slotTypeMatches(try_idx2, go_to) and
+                go_to >= try_idx2 and go_to < try_idx2 + OCTAVE_SIZE)
+            {
+                return try_idx2;
+            }
+        }
+
+        const octave = go_to / OCTAVE_SIZE;
+        return octave * OCTAVE_SIZE;
+    }
+
+    pub fn timeToGetThere(hand: *const HandInfo, go_to: usize) usize {
+        if (hand.covers(go_to)) return 0;
+        const target = hand.nearestValidIndex(go_to);
+        return whiteKeyDistance(hand.index, target) * TIME_TO_MOVE_KEY;
+    }
+
+    pub fn moveTo(hand: *HandInfo, go_to: usize) void {
+        if (hand.covers(go_to)) return;
+        hand.index = hand.nearestValidIndex(go_to);
     }
 
     pub fn getKey(hand: *HandInfo, key: usize) *bool {
@@ -365,6 +368,8 @@ pub const Solver = struct {
                         }
 
                         const relative_note = hand_info.globalToLocal(key);
+                        std.debug.assert(slotTypeMatches(hand_info.index, key));
+
                         const on: Instruction = .{
                             .timestamp = event.timestamp,
                             .cmd = .{
@@ -431,7 +436,7 @@ pub const Solver = struct {
             return null;
         }
 
-        const dir: Direction = if (hand_info.index < to) .left else .right;
+        const dir: Direction = if (hand_info.index > to) .left else .right;
         const time = hand_info.timeToGetThere(to);
 
         hand_info.moveTo(to);
@@ -442,7 +447,7 @@ pub const Solver = struct {
                 .move_hand = .{
                     .hand = hand,
                     .direction = dir,
-                    .time = time,
+                    .white_keys = time / TIME_TO_MOVE_KEY,
                 },
             },
         };
@@ -450,6 +455,16 @@ pub const Solver = struct {
 
     pub fn solve(solver: *Solver, alloc: Allocator, program: *MaestroProgram) !void {
         var timestamp: u32 = 0;
+
+        // Preprocessing
+        for (solver.instructions) |*event| {
+            if (event.event == .midi) {
+                switch (event.event.midi) {
+                    .note_on => event.event.midi.note_on.@"1".key -= KEY_OFFSET,
+                    .note_off => event.event.midi.note_off.@"1".key -= KEY_OFFSET,
+                }
+            }
+        }
 
         const first_key = solver.startAt();
         const hand_for_it = solver.bestHandForTheJob(first_key, std.math.maxInt(usize));
@@ -470,6 +485,7 @@ pub const Solver = struct {
         for (solver.instructions) |*event| {
             event.timestamp = timestamp + event.delta_time + offset;
             try solver.feed(alloc, program);
+
             timestamp += event.delta_time;
         }
 
