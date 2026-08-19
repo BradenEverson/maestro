@@ -108,12 +108,19 @@ pub const HandInfo = struct {
     pub fn moveTo(hand: *HandInfo, go_to: usize) void {
         if (hand.covers(go_to)) {
             return;
-        } else if (go_to > hand.index) {
-            // Go from the far end of the hand
-            hand.index = go_to - OCTAVE_SIZE + 1;
+        } else if (isBlackKey(go_to)) {
+            const octave = go_to / OCTAVE_SIZE;
+            const ocave_start = octave * OCTAVE_SIZE;
+
+            hand.index = ocave_start;
         } else {
-            // Move from early end of the hand
-            hand.index = go_to;
+            if (go_to > hand.index) {
+                // Go from the far end of the hand
+                hand.index = go_to - OCTAVE_SIZE + 1;
+            } else {
+                // Move from early end of the hand
+                hand.index = go_to;
+            }
         }
     }
 
@@ -349,6 +356,7 @@ pub const Solver = struct {
                             time_to_move = hand_info.timeToGetThere(key);
 
                             if (solver.moveTo(hand, key)) |instr| {
+                                std.debug.print("Can't move :(\n", .{});
                                 var in = instr;
 
                                 in.timestamp = event.timestamp - instr.timestamp;
