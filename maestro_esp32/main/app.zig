@@ -119,6 +119,9 @@ export fn app_main() callconv(.c) void {
 
     log.info("DONE", .{});
 
+    // TODO: Home for the right stepper is opposite
+    hand.stepper.goHome() catch unreachable;
+
     while (true) {
         idf.rtos.Task.delayMs(100);
     }

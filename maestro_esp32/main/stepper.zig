@@ -3,6 +3,8 @@
 const idf = @import("esp_idf");
 const Direction = @import("solver").Direction;
 
+relative_position: usize = 0,
+
 step_pin: idf.gpio.Num(),
 direction_pin: idf.gpio.Num(),
 direction: Direction,
@@ -28,9 +30,24 @@ pub fn init(
 
 pub fn step(stepper: *Self) !void {
     try idf.gpio.Level.set(stepper.step_pin, 1);
-    idf.rtos.Task.delayMs(1);
+    idf.rtos.Task.delay(1);
+    // idf.rtos.Task.delayMs(1);
     try idf.gpio.Level.set(stepper.step_pin, 0);
-    idf.rtos.Task.delayMs(1);
+    idf.rtos.Task.delay(1);
+    // idf.rtos.Task.delayMs(1);
+
+    if (stepper.direction == .left) {
+        stepper.relative_position -= 1;
+    } else {
+        stepper.relative_position += 1;
+    }
+}
+
+pub fn goHome(stepper: *Self) !void {
+    try stepper.switchDirection(.left);
+    while (stepper.relative_position > 0) {
+        try stepper.step();
+    }
 }
 
 pub fn switchDirection(stepper: *Self, dir: Direction) !void {

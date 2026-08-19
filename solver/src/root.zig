@@ -9,7 +9,7 @@ const PIANO_LEN: usize = 61;
 const HANDS: usize = 1;
 
 const TIME_TO_MOVE_KEY: usize = 1; // time in ms it takes to move a single key
-const KEY_OFFSET: usize = 36; // How many keys back we are when translating from sequencer to keyboard
+const KEY_OFFSET: usize = 48; // How many keys back we are when translating from sequencer to keyboard
 
 fn isBlackKey(key: usize) bool {
     const octave_idx = key % OCTAVE_SIZE;
@@ -101,9 +101,14 @@ pub const HandInfo = struct {
     }
 
     pub fn covers(hand: *const HandInfo, global_key: usize) bool {
-        return (global_key >= hand.index) and
-            (global_key < hand.index + OCTAVE_SIZE) and
-            slotTypeMatches(hand.index, global_key);
+        var cond = (global_key >= hand.index) and
+            (global_key < hand.index + OCTAVE_SIZE);
+
+        if (isBlackKey(global_key)) {
+            cond = cond and hand.isOctaveAligned();
+        }
+
+        return cond;
     }
 
     fn nearestValidIndex(hand: *const HandInfo, go_to: usize) usize {
@@ -368,7 +373,6 @@ pub const Solver = struct {
                         }
 
                         const relative_note = hand_info.globalToLocal(key);
-                        std.debug.assert(slotTypeMatches(hand_info.index, key));
 
                         const on: Instruction = .{
                             .timestamp = event.timestamp,
