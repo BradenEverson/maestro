@@ -84,13 +84,24 @@ pub const HandInfo = struct {
     pub fn timeToGetThere(hand: *const HandInfo, go_to: usize) usize {
         if (hand.covers(go_to)) {
             return 0;
-        } else if (go_to > hand.index) {
-            // Measure from the far end of the hand
-            const earliest_to_get_there = hand.index + OCTAVE_SIZE - 1;
-            return whiteKeyDistance(earliest_to_get_there, go_to) * TIME_TO_MOVE_KEY;
+        } else if (isBlackKey(go_to)) {
+            const octave = go_to / OCTAVE_SIZE;
+            const ocave_start = octave * OCTAVE_SIZE;
+
+            if (go_to > hand.index) {
+                return whiteKeyDistance(hand.index, ocave_start) * TIME_TO_MOVE_KEY;
+            } else {
+                return whiteKeyDistance(hand.index, ocave_start + OCTAVE_SIZE - 1) * TIME_TO_MOVE_KEY;
+            }
         } else {
-            // Move from left end of the hand
-            return whiteKeyDistance(hand.index, go_to) * TIME_TO_MOVE_KEY;
+            if (go_to > hand.index) {
+                // Measure from the far end of the hand
+                const earliest_to_get_there = hand.index + OCTAVE_SIZE - 1;
+                return whiteKeyDistance(earliest_to_get_there, go_to) * TIME_TO_MOVE_KEY;
+            } else {
+                // Move from left end of the hand
+                return whiteKeyDistance(hand.index, go_to) * TIME_TO_MOVE_KEY;
+            }
         }
     }
 
@@ -113,9 +124,19 @@ pub const HandInfo = struct {
         return true;
     }
 
+    pub fn isOctaveAligned(hand: *const HandInfo) bool {
+        return hand.index % OCTAVE_SIZE == 0;
+    }
+
     pub fn covers(hand: *const HandInfo, global_key: usize) bool {
-        return (global_key >= hand.index) and
-            (global_key < hand.index + OCTAVE_SIZE);
+        if (isBlackKey(global_key)) {
+            return hand.isOctaveAligned() and
+                (global_key >= hand.index) and
+                (global_key < hand.index + OCTAVE_SIZE);
+        } else {
+            return (global_key >= hand.index) and
+                (global_key < hand.index + OCTAVE_SIZE);
+        }
     }
 
     pub fn getKey(hand: *HandInfo, key: usize) *bool {
@@ -419,17 +440,29 @@ pub const Solver = struct {
         const first_key = solver.startAt();
         const hand_for_it = solver.bestHandForTheJob(first_key, std.math.maxInt(usize));
 
+        var time_to_make_first_move: usize = 0;
+
         if (solver.moveTo(hand_for_it.?, first_key)) |instr| {
+            time_to_make_first_move = instr.timestamp;
+
             var in = instr;
             in.timestamp = 0;
 
             try program.instructions.append(alloc, in);
         }
 
+        const offset: u32 = @truncate(time_to_make_first_move);
+
         for (solver.instructions) |*event| {
-            event.timestamp = timestamp + event.delta_time;
+            event.timestamp = timestamp + event.delta_time + offset;
             try solver.feed(alloc, program);
             timestamp += event.delta_time;
+        }
+
+        for (program.instructions.items, 0..) |*instr, i| {
+            if (i > 0) {
+                instr.delay = instr.timestamp - program.instructions.items[i - 1].timestamp;
+            }
         }
     }
 };
