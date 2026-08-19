@@ -39,4 +39,10 @@ pub fn main(init: std.process.Init) !void {
     defer program.deinit(alloc);
 
     try solver.solve(alloc, &program);
+
+    std.debug.print("Solve Complete Yay!!!\n", .{});
+
+    for (program.instructions.items) |instr| {
+        std.debug.print("{any}\n", .{instr});
+    }
 }

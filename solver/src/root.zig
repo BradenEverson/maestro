@@ -50,12 +50,12 @@ pub const MaestroProgram = struct {
 };
 
 pub const Instruction = struct {
-    delta_time: usize,
+    timestamp: usize,
     cmd: MaestroCommand,
 };
 
 pub const NoteInfo = struct {
-    hand: usize,
+    hand: Hand,
     relative_note: usize,
 };
 
@@ -85,7 +85,7 @@ pub const HandInfo = struct {
             return 0;
         } else if (go_to > hand.index) {
             // Measure from the far end of the hand
-            const earliest_to_get_there = hand.index + OCTAVE_SIZE;
+            const earliest_to_get_there = hand.index + OCTAVE_SIZE - 1;
             return whiteKeyDistance(earliest_to_get_there, go_to) * TIME_TO_MOVE_KEY;
         } else {
             // Move from left end of the hand
@@ -98,7 +98,7 @@ pub const HandInfo = struct {
             return;
         } else if (go_to > hand.index) {
             // Go from the far end of the hand
-            hand.index = go_to - OCTAVE_SIZE;
+            hand.index = go_to - OCTAVE_SIZE + 1;
         } else {
             // Move from early end of the hand
             hand.index = go_to;
@@ -119,6 +119,14 @@ pub const HandInfo = struct {
 
     pub fn getKey(hand: *HandInfo, key: usize) *bool {
         return &hand.pressing[key];
+    }
+
+    pub fn globalToLocal(hand: *const HandInfo, global_key: usize) ?usize {
+        if (!hand.covers(global_key)) {
+            return null;
+        }
+
+        return global_key - hand.index;
     }
 
     pub fn getGlobalKey(hand: *HandInfo, global_key: usize) ?*bool {
@@ -185,7 +193,7 @@ pub const Solver = struct {
         if (solver.left.isFree()) { //and !solver.blocking(.right, gotta_go_to)) {
             // Check if distance needed to get there is within time to do it
 
-            const time_to_get_there = solver.right.timeToGetThere(gotta_go_to);
+            const time_to_get_there = solver.left.timeToGetThere(gotta_go_to);
             if (time_to_get_there <= time_to_do_it) {
                 best_candidate = .left;
                 best_time = time_to_get_there;
@@ -201,7 +209,7 @@ pub const Solver = struct {
         //     //
         //     // AND AND AND if it physically can get there
         //
-        //     const time_to_get_there = solver.left.timeToGetThere(gotta_go_to);
+        //     const time_to_get_there = solver.right.timeToGetThere(gotta_go_to);
         //     if (time_to_get_there <= time_to_do_it and time_to_get_there < best_time) {
         //         best_candidate = .right;
         //         best_time = time_to_get_there;
@@ -282,19 +290,47 @@ pub const Solver = struct {
         alloc: Allocator,
         program: *MaestroProgram,
     ) !void {
-        _ = alloc;
-
         const event = solver.instructions[solver.instruction_pointer];
 
         switch (event.event) {
             .midi => |midi| switch (midi) {
                 .note_on => |note_on| {
                     const key = note_on.@"1".key;
-                    std.debug.print("{} {} on\n", .{ event.timestamp, key });
+                    std.debug.print("{} {} on\n", .{ event.delta_time, key });
 
                     if (solver.bestHandForTheJob(key, event.delta_time)) |hand| {
-                        _ = hand;
-                        std.debug.print("We can insert a move\n", .{});
+                        const hand_info = solver.getHand(hand);
+                        var time_to_move: usize = 0;
+
+                        if (!hand_info.covers(key)) {
+                            std.debug.print("We can insert a move\n", .{});
+
+                            time_to_move = hand_info.timeToGetThere(key);
+
+                            if (solver.moveTo(hand, key)) |instr| {
+                                var in = instr;
+
+                                in.timestamp = event.timestamp - instr.timestamp;
+                                try program.instructions.append(alloc, in);
+                            }
+                        }
+
+                        const relative_note = hand_info.globalToLocal(key);
+                        const on: Instruction = .{
+                            .timestamp = event.timestamp,
+                            .cmd = .{
+                                .note_on = .{
+                                    .hand = hand,
+                                    .relative_note = relative_note.?,
+                                },
+                            },
+                        };
+
+                        try program.instructions.append(alloc, on);
+
+                        const key_if_covers = hand_info
+                            .getGlobalKey(@as(usize, key));
+                        key_if_covers.?.* = true;
                     } else {
                         std.debug.print("Note will be missed, no hand can reach it\n", .{});
                     }
@@ -303,6 +339,7 @@ pub const Solver = struct {
                     const key = note_off.@"1".key;
                     std.debug.print("{} {} off\n", .{ event.timestamp, key });
 
+                    // TODO: Right too
                     const key_if_covers = solver.left
                         .getGlobalKey(@as(usize, key));
 
@@ -321,6 +358,8 @@ pub const Solver = struct {
         solver.instruction_pointer += 1;
     }
 
+    /// Creates an instruction for moving to a location, THE TIMESTAMP WILL BE THE DURATION,
+    /// THIS MUST BE SUBTRACTED FROM THE FUTURE INSTRUCTION TIMESTAMP TO GET THE REAL DEAL
     fn moveTo(solver: *Solver, hand: Hand, to: usize) ?Instruction {
         const hand_info = solver.getHand(hand);
         if (hand_info.covers(to)) {
@@ -333,7 +372,7 @@ pub const Solver = struct {
         hand_info.moveTo(to);
 
         return .{
-            .delta_time = 0,
+            .timestamp = time,
             .cmd = .{
                 .move_hand = .{
                     .hand = hand,
@@ -351,7 +390,10 @@ pub const Solver = struct {
         const hand_for_it = solver.bestHandForTheJob(first_key, std.math.maxInt(usize));
 
         if (solver.moveTo(hand_for_it.?, first_key)) |instr| {
-            try program.instructions.append(alloc, instr);
+            var in = instr;
+            in.timestamp = 0;
+
+            try program.instructions.append(alloc, in);
         }
 
         for (solver.instructions) |*event| {
