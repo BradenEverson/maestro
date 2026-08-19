@@ -51,6 +51,7 @@ pub const MaestroProgram = struct {
 
 pub const Instruction = struct {
     timestamp: usize,
+    delay: usize = 0,
     cmd: MaestroCommand,
 };
 
@@ -339,12 +340,25 @@ pub const Solver = struct {
                     const key = note_off.@"1".key;
                     std.debug.print("{} {} off\n", .{ event.timestamp, key });
 
-                    // TODO: Right too
+                    // TODO: Right too for all of this
+
                     const key_if_covers = solver.left
                         .getGlobalKey(@as(usize, key));
 
                     if (key_if_covers) |k| {
                         k.* = false;
+                        const relative_note = solver.left.globalToLocal(key);
+                        const on: Instruction = .{
+                            .timestamp = event.timestamp,
+                            .cmd = .{
+                                .note_off = .{
+                                    .hand = .left,
+                                    .relative_note = relative_note.?,
+                                },
+                            },
+                        };
+
+                        try program.instructions.append(alloc, on);
                     }
                 },
             },
