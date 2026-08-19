@@ -9,7 +9,7 @@ const Note = Hand.Note;
 const Solver = @import("solver").Solver;
 const MaestroProgram = @import("solver").MaestroProgram;
 
-const test_midi = @embedFile("v1keytest.mid");
+const test_midi = @embedFile("took_her_to_the_o_short_notes.mid");
 
 const log = std.log.scoped(.maestro);
 
@@ -94,13 +94,13 @@ export fn app_main() callconv(.c) void {
                 // one hand :)
 
                 log.info("ON: {}", .{note_on.relative_note});
-                // hand.press(note_off.relative_note) catch unreachable;
+                hand.pressNote(note_on.relative_note) catch unreachable;
             },
 
             .note_off => |note_off| {
                 // TODO: Same deal
                 log.info("OFF: {}", .{note_off.relative_note});
-                // hand.depressNote(note_off.relative_note) catch unreachable;
+                hand.depressNote(note_off.relative_note) catch unreachable;
             },
 
             .move_hand => |move_info| {

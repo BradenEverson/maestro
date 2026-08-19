@@ -74,16 +74,16 @@ pub fn init(
     };
 }
 
-pub fn pressNote(self: *Hand, note: Note) !void {
+pub fn pressNote(self: *Hand, note: usize) !void {
     const selection = self
-        .note_gpios[@intFromEnum(note)];
+        .note_gpios[note];
 
     try idf.gpio.Level.set(selection, 1);
 }
 
-pub fn depressNote(self: *Hand, note: Note) !void {
+pub fn depressNote(self: *Hand, note: usize) !void {
     const selection = self
-        .note_gpios[@intFromEnum(note)];
+        .note_gpios[note];
 
     try idf.gpio.Level.set(selection, 0);
 }
