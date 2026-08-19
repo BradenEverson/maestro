@@ -347,19 +347,19 @@ pub const Solver = struct {
                     solver.notes += 1;
 
                     const key = note_on.@"1".key;
-                    std.debug.print("{} {} on\n", .{ event.delta_time, key });
+                    // std.debug.print("{} {} on\n", .{ event.delta_time, key });
 
                     if (solver.bestHandForTheJob(key, event.delta_time)) |hand| {
                         const hand_info = solver.getHand(hand);
                         var time_to_move: usize = 0;
 
                         if (!hand_info.covers(key)) {
-                            std.debug.print("We can insert a move\n", .{});
+                            // std.debug.print("We can insert a move\n", .{});
 
                             time_to_move = hand_info.timeToGetThere(key);
 
                             if (solver.moveTo(hand, key)) |instr| {
-                                std.debug.print("Can't move :(\n", .{});
+                                // std.debug.print("Can't move :(\n", .{});
                                 var in = instr;
 
                                 in.timestamp = event.timestamp - instr.timestamp;
@@ -387,12 +387,12 @@ pub const Solver = struct {
                         key_if_covers.?.* = true;
                         solver.hit += 1;
                     } else {
-                        std.debug.print("Note will be missed, no hand can reach it\n", .{});
+                        // std.debug.print("Note will be missed, no hand can reach it\n", .{});
                     }
                 },
                 .note_off => |note_off| {
                     const key = note_off.@"1".key;
-                    std.debug.print("{} {} off\n", .{ event.timestamp, key });
+                    // std.debug.print("{} {} off\n", .{ event.timestamp, key });
 
                     const maybe_touhcing = solver.handThatsTouching(key);
 
@@ -489,7 +489,7 @@ pub const Solver = struct {
             timestamp += event.delta_time;
         }
 
-        std.debug.print("Solver Complete!! Note hit rate: {} / {}\n", .{ solver.hit, solver.notes });
+        // std.debug.print("Solver Complete!! Note hit rate: {} / {}\n", .{ solver.hit, solver.notes });
 
         for (program.instructions.items, 0..) |*instr, i| {
             if (i > 0) {

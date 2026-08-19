@@ -34,7 +34,7 @@
     .dependencies = .{
         .midi = .{
             .url = "../midi",
-            .hash = "midi-0.0.0-L3ZubjZhAAAg8MiMvOLDiu26Pfh_u9tvG2QuxtoMGUXj",
+            .hash = "midi-0.0.0-L3Zubk5hAAC4pwsOOdpwcNmfro4eSuFmWZCHyFU7N6g0",
         },
     },
     .paths = .{

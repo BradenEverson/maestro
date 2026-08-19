@@ -7,6 +7,7 @@ const Hand = @import("hand.zig");
 const Note = Hand.Note;
 
 const Solver = @import("solver").Solver;
+const MaestroProgram = @import("solver").MaestroProgram;
 
 const test_midi = @embedFile("v1keytest.mid");
 
@@ -25,12 +26,16 @@ export fn app_main() callconv(.c) void {
     log.info("Parse Complete!", .{});
     log.info("Solving MIDI!", .{});
 
-    var solver = Solver{};
-    var maestro_program = solver.solve(
-        alloc,
-        midi.tracks[0].mtrk_events.items,
-    ) catch unreachable;
-    defer maestro_program.deinit(alloc);
+    var solver = Solver{ .instructions = midi.tracks[0].mtrk_events.items };
+
+    var program: MaestroProgram = .{};
+
+    defer program.deinit(alloc);
+
+    solver.solve(alloc, &program) catch |err| {
+        log.err("Solve Failed {s}", .{@errorName(err)});
+        return;
+    };
 
     log.info("Solve Complete!", .{});
 
@@ -68,12 +73,12 @@ export fn app_main() callconv(.c) void {
 
     const ticks_per_qn: u32 = @intCast(midi.header.division.metrical);
 
-    const tempo_us = maestro_program.tempo;
+    const tempo_us = program.tempo;
     log.info("Tempo: {} BPM\n", .{60_000_000 / @as(u32, tempo_us)});
 
-    for (maestro_program.instructions.items) |instr| {
+    for (program.instructions.items) |instr| {
         const delay_ticks: u32 = @intCast(
-            (@as(u64, instr.delta_time) * tempo_us * RTOS_HZ) /
+            (@as(u64, instr.delay) * tempo_us * RTOS_HZ) /
                 (@as(u64, ticks_per_qn) * 1_000_000),
         );
 
@@ -89,14 +94,13 @@ export fn app_main() callconv(.c) void {
                 // one hand :)
 
                 log.info("ON: {}", .{note_on.relative_note});
-                hand.pressNote(.a) catch unreachable;
+                // hand.press(note_off.relative_note) catch unreachable;
             },
 
             .note_off => |note_off| {
                 // TODO: Same deal
                 log.info("OFF: {}", .{note_off.relative_note});
                 // hand.depressNote(note_off.relative_note) catch unreachable;
-                hand.depressNote(.a) catch unreachable;
             },
 
             .move_hand => |move_info| {
@@ -122,6 +126,9 @@ export fn app_main() callconv(.c) void {
 
 pub const panic = idf.esp_panic.panic;
 pub const std_options: std.Options = .{
+    .page_size_min = 4096,
+    .page_size_max = 4096,
+
     .log_level = switch (builtin.mode) {
         .Debug => .debug,
         else => .info,

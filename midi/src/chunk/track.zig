@@ -68,6 +68,7 @@ const PROGRAM_CHANGE: u8 = 0xC0;
 pub const MTrkEvent = struct {
     delta_time: u32,
     event: Event,
+    timestamp: u32 = 0,
 
     pub fn fromBytes(
         bytes: []const u8,
