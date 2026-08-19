@@ -89,13 +89,14 @@ export fn app_main() callconv(.c) void {
                 // one hand :)
 
                 log.info("ON: {}", .{note_on.relative_note});
-                hand.pressNote(note_on.relative_note) catch unreachable;
+                hand.pressNote(.a) catch unreachable;
             },
 
             .note_off => |note_off| {
                 // TODO: Same deal
                 log.info("OFF: {}", .{note_off.relative_note});
-                hand.depressNote(note_off.relative_note) catch unreachable;
+                // hand.depressNote(note_off.relative_note) catch unreachable;
+                hand.depressNote(.a) catch unreachable;
             },
 
             .move_hand => |move_info| {

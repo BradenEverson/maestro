@@ -201,12 +201,29 @@ pub const Solver = struct {
                     const key = note_on.@"1".key;
                     std.debug.print("{} {} on\n", .{ event.timestamp, key });
 
+                    const key_if_covers = solver.left
+                        .getGlobalKey(@as(usize, key));
+
+                    if (key_if_covers) |k| {
+                        k.* = true;
+                    }
+
                     const new_bounds = solver.bounds(.left);
                     std.debug.print("{any}\n", .{new_bounds});
                 },
                 .note_off => |note_off| {
                     const key = note_off.@"1".key;
                     std.debug.print("{} {} off\n", .{ event.timestamp, key });
+
+                    const key_if_covers = solver.left
+                        .getGlobalKey(@as(usize, key));
+
+                    if (key_if_covers) |k| {
+                        k.* = false;
+                    }
+
+                    const new_bounds = solver.bounds(.left);
+                    std.debug.print("{any}\n", .{new_bounds});
                 },
             },
             .meta => |meta| switch (meta) {
