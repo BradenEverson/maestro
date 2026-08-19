@@ -187,6 +187,9 @@ pub const Solver = struct {
     instructions: []Midi.TrackChunk.MTrkEvent,
     instruction_pointer: usize = 0,
 
+    hit: usize = 0,
+    notes: usize = 0,
+
     /// Checks if a hand is physically blocking a note from
     /// being reached by the other hand
     fn blocking(solver: *const Solver, hand: Hand, key: usize) bool {
@@ -331,6 +334,8 @@ pub const Solver = struct {
         switch (event.event) {
             .midi => |midi| switch (midi) {
                 .note_on => |note_on| {
+                    solver.notes += 1;
+
                     const key = note_on.@"1".key;
                     std.debug.print("{} {} on\n", .{ event.delta_time, key });
 
@@ -367,6 +372,7 @@ pub const Solver = struct {
                         const key_if_covers = hand_info
                             .getGlobalKey(@as(usize, key));
                         key_if_covers.?.* = true;
+                        solver.hit += 1;
                     } else {
                         std.debug.print("Note will be missed, no hand can reach it\n", .{});
                     }
@@ -458,6 +464,8 @@ pub const Solver = struct {
             try solver.feed(alloc, program);
             timestamp += event.delta_time;
         }
+
+        std.debug.print("Solver Complete!! Note hit rate: {} / {}\n", .{ solver.hit, solver.notes });
 
         for (program.instructions.items, 0..) |*instr, i| {
             if (i > 0) {
