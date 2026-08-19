@@ -8,6 +8,8 @@ const OCTAVE_SIZE: usize = 12;
 const PIANO_LEN: usize = 61;
 const HANDS: usize = 1;
 
+const TIME_TO_MOVE_KEY: usize = 1; // time in ms it takes to move a single key
+
 fn isBlackKey(key: usize) bool {
     const octave_idx = key % OCTAVE_SIZE;
     return switch (octave_idx) {
@@ -25,10 +27,15 @@ fn whiteKeysBefore(pos: usize) usize {
     return count;
 }
 
-fn whiteKeyDistance(from: usize, to: usize) i64 {
+fn whiteKeyDistance(from: usize, to: usize) usize {
     const wb_from = whiteKeysBefore(from);
     const wb_to = whiteKeysBefore(to);
-    return @as(i64, @intCast(wb_to)) - @as(i64, @intCast(wb_from));
+
+    if (from > to) {
+        return wb_from - wb_to;
+    } else {
+        return wb_to - wb_from;
+    }
 }
 
 pub const MaestroProgram = struct {
@@ -61,9 +68,9 @@ pub const MaestroCommand = union(enum) {
     note_on: NoteInfo,
     note_off: NoteInfo,
     move_hand: struct {
-        hand: usize,
+        hand: Hand,
         direction: Direction,
-        white_keys: usize,
+        time: usize,
     },
 };
 
@@ -72,6 +79,31 @@ pub const SolverError = Allocator.Error || error{NoFreeHandAvailable};
 pub const HandInfo = struct {
     index: usize,
     pressing: [OCTAVE_SIZE]bool = @splat(false),
+
+    pub fn timeToGetThere(hand: *const HandInfo, go_to: usize) usize {
+        if (hand.covers(go_to)) {
+            return 0;
+        } else if (go_to > hand.index) {
+            // Measure from the far end of the hand
+            const earliest_to_get_there = hand.index + OCTAVE_SIZE;
+            return whiteKeyDistance(earliest_to_get_there, go_to) * TIME_TO_MOVE_KEY;
+        } else {
+            // Move from left end of the hand
+            return whiteKeyDistance(hand.index, go_to) * TIME_TO_MOVE_KEY;
+        }
+    }
+
+    pub fn moveTo(hand: *HandInfo, go_to: usize) void {
+        if (hand.covers(go_to)) {
+            return;
+        } else if (go_to > hand.index) {
+            // Go from the far end of the hand
+            hand.index = go_to - OCTAVE_SIZE;
+        } else {
+            // Move from early end of the hand
+            hand.index = go_to;
+        }
+    }
 
     pub fn isFree(hand: *const HandInfo) bool {
         for (hand.pressing) |key|
@@ -125,11 +157,58 @@ pub const Solver = struct {
     instructions: []Midi.TrackChunk.MTrkEvent,
     instruction_pointer: usize = 0,
 
+    /// Checks if a hand is physically blocking a note from
+    /// being reached by the other hand
+    fn blocking(solver: *const Solver, hand: Hand, key: usize) bool {
+        return switch (hand) {
+            .left => solver.left.index + OCTAVE_SIZE >= key,
+            .right => solver.right.index <= key,
+        };
+    }
+
     fn getHand(solver: *Solver, hand: Hand) *HandInfo {
         return switch (hand) {
             .left => &solver.left,
             .right => &solver.right,
         };
+    }
+
+    fn bestHandForTheJob(
+        solver: *const Solver,
+        gotta_go_to: usize,
+        time_to_do_it: usize,
+    ) ?Hand {
+        var best_candidate: ?Hand = null;
+        var best_time: usize = std.math.maxInt(usize);
+
+        // TODO: Check if right is blocking here too :)
+        if (solver.left.isFree()) { //and !solver.blocking(.right, gotta_go_to)) {
+            // Check if distance needed to get there is within time to do it
+
+            const time_to_get_there = solver.right.timeToGetThere(gotta_go_to);
+            if (time_to_get_there <= time_to_do_it) {
+                best_candidate = .left;
+                best_time = time_to_get_there;
+            }
+        }
+
+        // TODO: Use left and right hands
+
+        // if (solver.right.isFree() and !solver.blocking(.left, gotta_go_to)) {
+        //     // Check if distance needed to get there is within time to do it
+        //     // AND if it's less than the left distance if left is a valid
+        //     // candidate
+        //     //
+        //     // AND AND AND if it physically can get there
+        //
+        //     const time_to_get_there = solver.left.timeToGetThere(gotta_go_to);
+        //     if (time_to_get_there <= time_to_do_it and time_to_get_there < best_time) {
+        //         best_candidate = .right;
+        //         best_time = time_to_get_there;
+        //     }
+        // }
+
+        return best_candidate;
     }
 
     fn bounds(
@@ -186,6 +265,18 @@ pub const Solver = struct {
         };
     }
 
+    fn startAt(solver: *const Solver) usize {
+        for (solver.instructions) |instr| {
+            if (instr.event == .midi and
+                instr.event.midi == .note_on)
+            {
+                return instr.event.midi.note_on.@"1".key;
+            }
+        }
+
+        return 0;
+    }
+
     pub fn feed(
         solver: *Solver,
         alloc: Allocator,
@@ -201,15 +292,12 @@ pub const Solver = struct {
                     const key = note_on.@"1".key;
                     std.debug.print("{} {} on\n", .{ event.timestamp, key });
 
-                    const key_if_covers = solver.left
-                        .getGlobalKey(@as(usize, key));
-
-                    if (key_if_covers) |k| {
-                        k.* = true;
+                    if (solver.bestHandForTheJob(key, event.delta_time)) |hand| {
+                        _ = hand;
+                        std.debug.print("We can insert a move\n", .{});
+                    } else {
+                        std.debug.print("Note will be missed, no hand can reach it\n", .{});
                     }
-
-                    const new_bounds = solver.bounds(.left);
-                    std.debug.print("{any}\n", .{new_bounds});
                 },
                 .note_off => |note_off| {
                     const key = note_off.@"1".key;
@@ -221,9 +309,6 @@ pub const Solver = struct {
                     if (key_if_covers) |k| {
                         k.* = false;
                     }
-
-                    const new_bounds = solver.bounds(.left);
-                    std.debug.print("{any}\n", .{new_bounds});
                 },
             },
             .meta => |meta| switch (meta) {
@@ -236,8 +321,38 @@ pub const Solver = struct {
         solver.instruction_pointer += 1;
     }
 
+    fn moveTo(solver: *Solver, hand: Hand, to: usize) ?Instruction {
+        const hand_info = solver.getHand(hand);
+        if (hand_info.covers(to)) {
+            return null;
+        }
+
+        const dir: Direction = if (hand_info.index < to) .left else .right;
+        const time = hand_info.timeToGetThere(to);
+
+        hand_info.moveTo(to);
+
+        return .{
+            .delta_time = 0,
+            .cmd = .{
+                .move_hand = .{
+                    .hand = hand,
+                    .direction = dir,
+                    .time = time,
+                },
+            },
+        };
+    }
+
     pub fn solve(solver: *Solver, alloc: Allocator, program: *MaestroProgram) !void {
         var timestamp: u32 = 0;
+
+        const first_key = solver.startAt();
+        const hand_for_it = solver.bestHandForTheJob(first_key, std.math.maxInt(usize));
+
+        if (solver.moveTo(hand_for_it.?, first_key)) |instr| {
+            try program.instructions.append(alloc, instr);
+        }
 
         for (solver.instructions) |*event| {
             event.timestamp = timestamp + event.delta_time;
