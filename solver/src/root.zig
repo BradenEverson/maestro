@@ -182,6 +182,20 @@ pub const Solver = struct {
         };
     }
 
+    fn handThatsTouching(
+        solver: *Solver,
+        note: usize,
+    ) ?Hand {
+        if (solver.left.getGlobalKey(note)) |_| {
+            return .left;
+            // TODO: Right here too
+            // } else if (solver.right.getGlobalKey(note)) |_| {
+            //     return .right;
+        } else {
+            return null;
+        }
+    }
+
     fn bestHandForTheJob(
         solver: *const Solver,
         gotta_go_to: usize,
@@ -340,19 +354,21 @@ pub const Solver = struct {
                     const key = note_off.@"1".key;
                     std.debug.print("{} {} off\n", .{ event.timestamp, key });
 
-                    // TODO: Right too for all of this
+                    const maybe_touhcing = solver.handThatsTouching(key);
 
-                    const key_if_covers = solver.left
-                        .getGlobalKey(@as(usize, key));
+                    if (maybe_touhcing) |hand| {
+                        const hand_info = solver.getHand(hand);
 
-                    if (key_if_covers) |k| {
+                        const k = hand_info
+                            .getGlobalKey(@as(usize, key)).?;
+
                         k.* = false;
-                        const relative_note = solver.left.globalToLocal(key);
+                        const relative_note = hand_info.globalToLocal(key);
                         const on: Instruction = .{
                             .timestamp = event.timestamp,
                             .cmd = .{
                                 .note_off = .{
-                                    .hand = .left,
+                                    .hand = hand,
                                     .relative_note = relative_note.?,
                                 },
                             },
