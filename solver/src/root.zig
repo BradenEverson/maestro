@@ -8,8 +8,15 @@ const OCTAVE_SIZE: usize = 12;
 const PIANO_LEN: usize = 61;
 const HANDS: usize = 1;
 
-const TIME_TO_MOVE_KEY: usize = 30; // time in ms it takes to move a single key
-const KEY_OFFSET: usize = 48; // How many keys back we are when translating from sequencer to keyboard
+/// time in ms it takes to move a single key
+const TIME_TO_MOVE_KEY: usize = 30;
+
+/// How many keys back we are when translating
+/// from sequencer to keyboard
+///
+/// For testing, I'm currently like 4 octaves back
+/// (we have a smaller fixture rn)
+const KEY_OFFSET: usize = 48;
 
 fn ticksPerKeyMove(ticks_per_quarter: u16, us_per_quarter: u24) usize {
     return (TIME_TO_MOVE_KEY * 1000 * @as(usize, ticks_per_quarter)) /
