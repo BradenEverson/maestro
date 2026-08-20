@@ -8,8 +8,13 @@ const OCTAVE_SIZE: usize = 12;
 const PIANO_LEN: usize = 61;
 const HANDS: usize = 1;
 
-const TIME_TO_MOVE_KEY: usize = 1; // time in ms it takes to move a single key
+const TIME_TO_MOVE_KEY: usize = 30; // time in ms it takes to move a single key
 const KEY_OFFSET: usize = 48; // How many keys back we are when translating from sequencer to keyboard
+
+fn ticksPerKeyMove(ticks_per_quarter: u16, us_per_quarter: u24) usize {
+    return (TIME_TO_MOVE_KEY * 1000 * @as(usize, ticks_per_quarter)) /
+        @as(usize, us_per_quarter);
+}
 
 fn isBlackKey(key: usize) bool {
     const octave_idx = key % OCTAVE_SIZE;
@@ -44,6 +49,16 @@ fn whiteKeyDistance(from: usize, to: usize) usize {
     } else {
         return wb_to - wb_from;
     }
+}
+
+pub fn getTempo(events: []Midi.TrackChunk.MTrkEvent) ?u24 {
+    for (events) |evt| {
+        if (evt.event == .meta and evt.event.meta == .set_tempo) {
+            return evt.event.meta.set_tempo;
+        }
+    }
+
+    return null;
 }
 
 pub const MaestroProgram = struct {
@@ -143,10 +158,10 @@ pub const HandInfo = struct {
         return octave * OCTAVE_SIZE;
     }
 
-    pub fn timeToGetThere(hand: *const HandInfo, go_to: usize) usize {
+    pub fn timeToGetThere(hand: *const HandInfo, go_to: usize, ticks_per_key: usize) usize {
         if (hand.covers(go_to)) return 0;
         const target = hand.nearestValidIndex(go_to);
-        return whiteKeyDistance(hand.index, target) * TIME_TO_MOVE_KEY;
+        return whiteKeyDistance(hand.index, target) * ticks_per_key;
     }
 
     pub fn moveTo(hand: *HandInfo, go_to: usize) void {
@@ -202,6 +217,10 @@ pub const Solver = struct {
     instructions: []Midi.TrackChunk.MTrkEvent,
     instruction_pointer: usize = 0,
 
+    ticks_per_quarter: u16,
+    us_per_quarter: u24,
+    ticks_per_key: usize = 0,
+
     hit: usize = 0,
     notes: usize = 0,
 
@@ -247,7 +266,7 @@ pub const Solver = struct {
         if (solver.left.isFree()) { //and !solver.blocking(.right, gotta_go_to)) {
             // Check if distance needed to get there is within time to do it
 
-            const time_to_get_there = solver.left.timeToGetThere(gotta_go_to);
+            const time_to_get_there = solver.left.timeToGetThere(gotta_go_to, solver.ticks_per_key);
             if (time_to_get_there <= time_to_do_it) {
                 best_candidate = .left;
                 best_time = time_to_get_there;
@@ -263,7 +282,7 @@ pub const Solver = struct {
         //     //
         //     // AND AND AND if it physically can get there
         //
-        //     const time_to_get_there = solver.right.timeToGetThere(gotta_go_to);
+        //     const time_to_get_there = solver.right.timeToGetThere(gotta_go_to, solver.ticks_per_key);
         //     if (time_to_get_there <= time_to_do_it and time_to_get_there < best_time) {
         //         best_candidate = .right;
         //         best_time = time_to_get_there;
@@ -361,7 +380,7 @@ pub const Solver = struct {
                         if (!hand_info.covers(key)) {
                             // std.debug.print("We can insert a move\n", .{});
 
-                            time_to_move = hand_info.timeToGetThere(key);
+                            time_to_move = hand_info.timeToGetThere(key, solver.ticks_per_key);
 
                             if (solver.moveTo(hand, key)) |instr| {
                                 // std.debug.print("Can't move :(\n", .{});
@@ -441,7 +460,7 @@ pub const Solver = struct {
         }
 
         const dir: Direction = if (hand_info.index > to) .left else .right;
-        const time = hand_info.timeToGetThere(to);
+        const time = hand_info.timeToGetThere(to, solver.ticks_per_key);
 
         hand_info.moveTo(to);
 
@@ -451,7 +470,7 @@ pub const Solver = struct {
                 .move_hand = .{
                     .hand = hand,
                     .direction = dir,
-                    .white_keys = time / TIME_TO_MOVE_KEY,
+                    .white_keys = time / solver.ticks_per_key,
                 },
             },
         };
@@ -459,6 +478,8 @@ pub const Solver = struct {
 
     pub fn solve(solver: *Solver, alloc: Allocator, program: *MaestroProgram) !void {
         var timestamp: u32 = 0;
+
+        solver.ticks_per_key = ticksPerKeyMove(solver.ticks_per_quarter, solver.us_per_quarter);
 
         // Preprocessing
         for (solver.instructions) |*event| {

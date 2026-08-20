@@ -9,6 +9,8 @@ step_pin: idf.gpio.Num(),
 direction_pin: idf.gpio.Num(),
 direction: Direction,
 
+extern fn esp_rom_delay_us(us: u32) void;
+
 const Self = @This();
 
 pub fn init(
@@ -30,11 +32,10 @@ pub fn init(
 
 pub fn step(stepper: *Self) !void {
     try idf.gpio.Level.set(stepper.step_pin, 1);
-    idf.rtos.Task.delay(1);
-    // idf.rtos.Task.delayMs(1);
+    esp_rom_delay_us(125);
+
     try idf.gpio.Level.set(stepper.step_pin, 0);
-    idf.rtos.Task.delay(1);
-    // idf.rtos.Task.delayMs(1);
+    esp_rom_delay_us(125);
 
     if (stepper.direction == .left) {
         stepper.relative_position -= 1;

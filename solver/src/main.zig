@@ -31,8 +31,12 @@ pub fn main(init: std.process.Init) !void {
     var midi = try Midi.fromBytes(alloc, source);
     defer midi.deinit(alloc);
 
+    const tempo = maestro_solver.getTempo(midi.tracks[0].mtrk_events.items);
+
     var solver: Solver = .{
         .instructions = midi.tracks[0].mtrk_events.items,
+        .ticks_per_quarter = midi.header.division.metrical, // only support metrical rn :)
+        .us_per_quarter = tempo.?,
     };
     var program: MaestroProgram = .{};
 
@@ -40,7 +44,7 @@ pub fn main(init: std.process.Init) !void {
 
     try solver.solve(alloc, &program);
 
-    std.debug.print("Solve Complete Yay!!!\n", .{});
+    std.debug.print("Solver Complete!! Note hit rate: {} / {}\n", .{ solver.hit, solver.notes });
 
     for (program.instructions.items) |instr| {
         std.debug.print("{any}\n", .{instr});
