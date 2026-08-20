@@ -122,13 +122,21 @@ pub const Solver = struct {
     }
 
     fn bestPositionForTheFuture(
-        solver: *const Solver,
+        solver: *Solver,
         hand: Hand,
         must_at_least_hit: usize,
         time_to_do_it: usize,
     ) ?struct { position: usize, future_coverage: usize, time_to_get_there: usize } {
         const hand_info = solver.getHandConst(hand);
         const time_to_get_there = hand_info.timeToGetThere(must_at_least_hit, solver.ticks_per_key);
+
+        if (hand_info.covers(must_at_least_hit)) {
+            return .{
+                .position = must_at_least_hit,
+                .future_coverage = 0,
+                .time_to_get_there = 0,
+            };
+        }
 
         if (time_to_get_there <= time_to_do_it) {
             return .{
@@ -142,7 +150,7 @@ pub const Solver = struct {
     }
 
     fn bestHandForTheJob(
-        solver: *const Solver,
+        solver: *Solver,
         gotta_go_to: usize,
         time_to_do_it: usize,
     ) ?struct { hand: Hand, new_pos: usize } {
@@ -267,7 +275,6 @@ pub const Solver = struct {
                     solver.notes += 1;
 
                     const key = note_on.@"1".key;
-                    // std.debug.print("{} {} on\n", .{ event.delta_time, key });
 
                     if (solver.bestHandForTheJob(key, event.delta_time)) |best_stuff| {
                         const hand = best_stuff.hand;
@@ -277,12 +284,9 @@ pub const Solver = struct {
                         var time_to_move: usize = 0;
 
                         if (!hand_info.covers(pos)) {
-                            // std.debug.print("We can insert a move\n", .{});
-
                             time_to_move = hand_info.timeToGetThere(pos, solver.ticks_per_key);
 
                             if (solver.moveTo(hand, pos)) |instr| {
-                                // std.debug.print("Can't move :(\n", .{});
                                 var in = instr;
 
                                 in.timestamp = event.timestamp - instr.timestamp;
@@ -308,13 +312,10 @@ pub const Solver = struct {
                             .getGlobalKey(@as(usize, key));
                         key_if_covers.?.* = true;
                         solver.hit += 1;
-                    } else {
-                        // std.debug.print("Note will be missed, no hand can reach it\n", .{});
                     }
                 },
                 .note_off => |note_off| {
                     const key = note_off.@"1".key;
-                    // std.debug.print("{} {} off\n", .{ event.timestamp, key });
 
                     const maybe_touhcing = solver.handThatsTouching(key);
 
@@ -425,8 +426,6 @@ pub const Solver = struct {
 
             timestamp += event.delta_time;
         }
-
-        // std.debug.print("Solver Complete!! Note hit rate: {} / {}\n", .{ solver.hit, solver.notes });
 
         for (program.instructions.items, 0..) |*instr, i| {
             if (i > 0) {

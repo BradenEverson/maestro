@@ -47,7 +47,7 @@ pub fn main(init: std.process.Init) !void {
 
     std.debug.print("Solver Complete!! Note hit rate: {} / {}\n", .{ solver.hit, solver.notes });
 
-    for (program.instructions.items) |instr| {
-        std.debug.print("{any}\n", .{instr});
-    }
+    // for (program.instructions.items) |instr| {
+    //     std.debug.print("{any}\n", .{instr});
+    // }
 }
