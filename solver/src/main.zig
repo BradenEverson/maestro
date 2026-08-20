@@ -36,6 +36,7 @@ pub fn main(init: std.process.Init) !void {
     var solver: Solver = .{
         .instructions = midi.tracks[0].mtrk_events.items,
         .ticks_per_quarter = midi.header.division.metrical, // only support metrical rn :)
+
         .us_per_quarter = tempo.?,
     };
     var program: MaestroProgram = .{};

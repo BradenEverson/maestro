@@ -16,7 +16,7 @@ const TIME_TO_MOVE_KEY: usize = 30;
 ///
 /// For testing, I'm currently like 4 octaves back
 /// (we have a smaller fixture rn)
-const KEY_OFFSET: usize = 48;
+const KEY_OFFSET: usize = 0;
 
 fn ticksPerKeyMove(ticks_per_quarter: u16, us_per_quarter: u24) usize {
     return (TIME_TO_MOVE_KEY * 1000 * @as(usize, ticks_per_quarter)) /
@@ -488,12 +488,25 @@ pub const Solver = struct {
 
         solver.ticks_per_key = ticksPerKeyMove(solver.ticks_per_quarter, solver.us_per_quarter);
 
+        const sixteenth_note = solver.ticks_per_quarter / 4;
+
         // Preprocessing
-        for (solver.instructions) |*event| {
+        for (solver.instructions, 0..) |*event, i| {
             if (event.event == .midi) {
                 switch (event.event.midi) {
                     .note_on => event.event.midi.note_on.@"1".key -= KEY_OFFSET,
-                    .note_off => event.event.midi.note_off.@"1".key -= KEY_OFFSET,
+                    .note_off => {
+                        event.event.midi.note_off.@"1".key -= KEY_OFFSET;
+
+                        // Force all notes to be a sixteenth note
+                        if (event.delta_time > sixteenth_note) {
+                            if (i < solver.instructions.len - 1) {
+                                solver.instructions[i + 1].delta_time += (event.delta_time - sixteenth_note);
+                            }
+
+                            event.delta_time = sixteenth_note;
+                        }
+                    },
                 }
             }
         }
