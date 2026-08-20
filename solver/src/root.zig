@@ -240,6 +240,13 @@ pub const Solver = struct {
         };
     }
 
+    fn getHandConst(solver: *const Solver, hand: Hand) *const HandInfo {
+        return switch (hand) {
+            .left => &solver.left,
+            .right => &solver.right,
+        };
+    }
+
     fn getHand(solver: *Solver, hand: Hand) *HandInfo {
         return switch (hand) {
             .left => &solver.left,
@@ -261,22 +268,46 @@ pub const Solver = struct {
         }
     }
 
+    fn bestPositionForTheFuture(
+        solver: *const Solver,
+        hand: Hand,
+        must_at_least_hit: usize,
+        time_to_do_it: usize,
+    ) ?struct { position: usize, future_coverage: usize, time_to_get_there: usize } {
+        const hand_info = solver.getHandConst(hand);
+        const time_to_get_there = hand_info.timeToGetThere(must_at_least_hit, solver.ticks_per_key);
+        if (time_to_get_there <= time_to_do_it) {
+            return .{
+                .position = must_at_least_hit,
+                .future_coverage = 1,
+                .time_to_get_there = time_to_get_there,
+            };
+        }
+
+        return null;
+    }
+
     fn bestHandForTheJob(
         solver: *const Solver,
         gotta_go_to: usize,
         time_to_do_it: usize,
-    ) ?Hand {
+    ) ?struct { hand: Hand, new_pos: usize } {
         var best_candidate: ?Hand = null;
         var best_time: usize = std.math.maxInt(usize);
+        var position: usize = time_to_do_it;
+        var coverage: usize = 0;
 
         // TODO: Check if right is blocking here too :)
         if (solver.left.isFree()) { //and !solver.blocking(.right, gotta_go_to)) {
             // Check if distance needed to get there is within time to do it
 
-            const time_to_get_there = solver.left.timeToGetThere(gotta_go_to, solver.ticks_per_key);
-            if (time_to_get_there <= time_to_do_it) {
+            const best_pos = solver.bestPositionForTheFuture(.left, gotta_go_to, time_to_do_it);
+
+            if (best_pos) |pos| {
                 best_candidate = .left;
-                best_time = time_to_get_there;
+                best_time = pos.time_to_get_there;
+                coverage = pos.future_coverage;
+                position = pos.position;
             }
         }
 
@@ -296,7 +327,11 @@ pub const Solver = struct {
         //     }
         // }
 
-        return best_candidate;
+        if (best_candidate) |candidate| {
+            return .{ .hand = candidate, .new_pos = position };
+        } else {
+            return null;
+        }
     }
 
     fn bounds(
@@ -380,16 +415,19 @@ pub const Solver = struct {
                     const key = note_on.@"1".key;
                     // std.debug.print("{} {} on\n", .{ event.delta_time, key });
 
-                    if (solver.bestHandForTheJob(key, event.delta_time)) |hand| {
+                    if (solver.bestHandForTheJob(key, event.delta_time)) |best_stuff| {
+                        const hand = best_stuff.hand;
+                        const pos = best_stuff.new_pos;
+
                         const hand_info = solver.getHand(hand);
                         var time_to_move: usize = 0;
 
-                        if (!hand_info.covers(key)) {
+                        if (!hand_info.covers(pos)) {
                             // std.debug.print("We can insert a move\n", .{});
 
-                            time_to_move = hand_info.timeToGetThere(key, solver.ticks_per_key);
+                            time_to_move = hand_info.timeToGetThere(pos, solver.ticks_per_key);
 
-                            if (solver.moveTo(hand, key)) |instr| {
+                            if (solver.moveTo(hand, pos)) |instr| {
                                 // std.debug.print("Can't move :(\n", .{});
                                 var in = instr;
 
@@ -516,7 +554,7 @@ pub const Solver = struct {
 
         var time_to_make_first_move: usize = 0;
 
-        if (solver.moveTo(hand_for_it.?, first_key)) |instr| {
+        if (solver.moveTo(hand_for_it.?.hand, hand_for_it.?.new_pos)) |instr| {
             time_to_make_first_move = instr.timestamp;
 
             var in = instr;
