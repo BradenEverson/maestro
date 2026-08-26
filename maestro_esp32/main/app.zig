@@ -1,6 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const idf = @import("esp_idf");
+const sys = idf.sys;
 
 const MIDI = @import("midi");
 const Hand = @import("hand.zig");
@@ -13,9 +14,42 @@ const test_midi = @embedFile("took_her_to_the_o_short_notes.mid");
 
 const log = std.log.scoped(.maestro);
 
+const UART_PORT: c_uint = 1; // UART1
+const BAUD_RATE = 115200;
+const BUF_SIZE = 256;
+
+const TX_PIN: c_int = 43;
+const RX_PIN: c_int = 44;
+
+pub fn setPin(port: c_uint, pins: struct {
+    tx: c_int = sys.UART_PIN_NO_CHANGE,
+    rx: c_int = sys.UART_PIN_NO_CHANGE,
+    rts: c_int = sys.UART_PIN_NO_CHANGE,
+    cts: c_int = sys.UART_PIN_NO_CHANGE,
+}) !void {
+    const ret = sys._uart_set_pin4(
+        port,
+        pins.tx,
+        pins.rx,
+        pins.rts,
+        pins.cts,
+    );
+    if (ret != sys.ESP_OK) return error.SetPinFailed;
+}
+
 export fn app_main() callconv(.c) void {
     var heap: idf.heap.VPortAllocator = .init();
     const alloc = heap.allocator();
+
+    setPin(UART_PORT, .{
+        .tx = TX_PIN,
+        .rx = RX_PIN,
+    }) catch unreachable;
+
+    idf.uart.driverInstall(UART_PORT, .{
+        .rx_buffer_size = BUF_SIZE * 2,
+        .tx_buffer_size = 0,
+    }) catch unreachable;
 
     var midi = MIDI.fromBytes(alloc, test_midi) catch |err| {
         log.err("MIDI Parse Failed {s}", .{@errorName(err)});
