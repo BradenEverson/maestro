@@ -73,6 +73,7 @@ pub const MessageParser = struct {
                 mp.op = op;
 
                 mp.state = .read_payload;
+                mp.payload_ptr = 0;
 
                 switch (op) {
                     .move => mp.payload_len = 2,
@@ -80,7 +81,35 @@ pub const MessageParser = struct {
                 }
             },
 
-            .read_payload => {},
+            .read_payload => {
+                switch (mp.op) {
+                    .move => {
+                        if (mp.payload_ptr == 0) {
+                            mp.curr_message = .{ .move = .{ .dir = @enumFromInt(byte), .white_keys = 0 } };
+                        } else {
+                            mp.curr_message.move.white_keys = byte;
+                        }
+                    },
+
+                    .press => {
+                        mp.curr_message = .{ .press = byte };
+                    },
+
+                    .depress => {
+                        mp.curr_message = .{ .depress = byte };
+                    },
+                }
+
+                mp.payload_ptr += 1;
+
+                if (mp.payload_ptr == mp.payload_len) {
+                    mp.state = .waiting_for_magic_number;
+                    mp.payload_len = 0;
+                    mp.payload_ptr = 0;
+
+                    return mp.curr_message;
+                }
+            },
         }
 
         return null;
@@ -108,13 +137,33 @@ test "Feed bytes" {
     var msg = parser.feedByte(0x72);
     try std.testing.expectEqual(null, msg);
 
-    msg = parser.feedByte(0x01);
+    msg = parser.feedByte(0);
     try std.testing.expectEqual(null, msg);
 
     msg = parser.feedByte(0);
     try std.testing.expectEqual(null, msg);
 
     msg = parser.feedByte(10);
-    const expected: RightHandMessage = .{ .move = .{ .dir = .left, .white_keys = 10 } };
+    var expected: RightHandMessage = .{ .move = .{ .dir = .left, .white_keys = 10 } };
+    try std.testing.expectEqual(expected, msg);
+
+    msg = parser.feedByte(0x72);
+    try std.testing.expectEqual(null, msg);
+
+    msg = parser.feedByte(1);
+    try std.testing.expectEqual(null, msg);
+
+    msg = parser.feedByte(9);
+    expected = .{ .press = 9 };
+    try std.testing.expectEqual(expected, msg);
+
+    msg = parser.feedByte(0x72);
+    try std.testing.expectEqual(null, msg);
+
+    msg = parser.feedByte(2);
+    try std.testing.expectEqual(null, msg);
+
+    msg = parser.feedByte(2);
+    expected = .{ .depress = 2 };
     try std.testing.expectEqual(expected, msg);
 }
