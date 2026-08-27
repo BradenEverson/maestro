@@ -31,19 +31,17 @@ pub const RightHandMessage = union(RightHandOp) {
             .press, .depress => 1,
         };
 
-        buf[2] = msg_len;
-
         switch (msg.*) {
             .move => |mv| {
-                buf[3] = @intFromEnum(mv.dir);
-                buf[4] = mv.white_keys;
+                buf[2] = @intFromEnum(mv.dir);
+                buf[3] = mv.white_keys;
             },
 
-            .press => |p| buf[3] = p,
-            .depress => |d| buf[3] = d,
+            .press => |p| buf[2] = p,
+            .depress => |d| buf[2] = d,
         }
 
-        return buf[0..(3 + msg_len)];
+        return buf[0..(2 + msg_len)];
     }
 };
 
@@ -61,19 +59,55 @@ pub const MessageParser = struct {
     payload_ptr: usize = 0,
 
     state: ParserState = .waiting_for_magic_number,
+
+    pub fn feedByte(mp: *MessageParser, byte: u8) ?RightHandMessage {
+        switch (mp.state) {
+            .waiting_for_magic_number => {
+                if (byte == MAGIC_NUMBER) {
+                    mp.state = .read_opcode;
+                }
+            },
+
+            .read_opcode => {
+                const op: RightHandOp = @enumFromInt(byte);
+                mp.op = op;
+
+                mp.state = .read_payload;
+
+                switch (op) {
+                    .move => mp.payload_len = 2,
+                    .press, .depress => mp.payload_len = 1,
+                }
+            },
+
+            .read_payload => {},
+        }
+
+        return null;
+    }
 };
 
 test "Messages to bytes" {
     const msg: RightHandMessage = .{ .move = .{ .dir = .left, .white_keys = 10 } };
     var buf: [32]u8 = undefined;
     var res = msg.toBytesToSend(&buf);
-    try std.testing.expectEqualSlices(u8, &[_]u8{ 0x72, 0x00, 2, 0, 10 }, res);
+    try std.testing.expectEqualSlices(u8, &[_]u8{ 0x72, 0x00, 0, 10 }, res);
 
     const press: RightHandMessage = .{ .press = 3 };
     res = press.toBytesToSend(&buf);
-    try std.testing.expectEqualSlices(u8, &[_]u8{ 0x72, 0x01, 1, 3 }, res);
+    try std.testing.expectEqualSlices(u8, &[_]u8{ 0x72, 0x01, 3 }, res);
 
     const depress: RightHandMessage = .{ .depress = 10 };
     res = depress.toBytesToSend(&buf);
-    try std.testing.expectEqualSlices(u8, &[_]u8{ 0x72, 0x02, 1, 10 }, res);
+    try std.testing.expectEqualSlices(u8, &[_]u8{ 0x72, 0x02, 10 }, res);
+}
+
+test "Feed bytes" {
+    var parser: MessageParser = .{};
+
+    var msg = parser.feedByte(0x72);
+    try std.testing.expectEqual(null, msg);
+
+    msg = parser.feedByte(0x01);
+    try std.testing.expectEqual(null, msg);
 }
