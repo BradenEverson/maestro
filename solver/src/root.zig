@@ -55,7 +55,7 @@ pub const NoteInfo = struct {
     relative_note: usize,
 };
 
-pub const Direction = enum(u32) {
+pub const Direction = enum(u8) {
     left = 0,
     right = 1,
 };
@@ -434,3 +434,8 @@ pub const Solver = struct {
         }
     }
 };
+
+test {
+    _ = @import("hand.zig");
+    _ = @import("packet.zig");
+}
