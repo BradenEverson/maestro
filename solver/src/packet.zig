@@ -110,4 +110,11 @@ test "Feed bytes" {
 
     msg = parser.feedByte(0x01);
     try std.testing.expectEqual(null, msg);
+
+    msg = parser.feedByte(0);
+    try std.testing.expectEqual(null, msg);
+
+    msg = parser.feedByte(10);
+    const expected: RightHandMessage = .{ .move = .{ .dir = .left, .white_keys = 10 } };
+    try std.testing.expectEqual(expected, msg);
 }
