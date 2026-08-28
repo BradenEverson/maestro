@@ -65,29 +65,36 @@ export fn app_main() callconv(.c) void {
     // log.info("Parse Complete!", .{});
     // log.info("Solving MIDI!", .{});
     //
-    const tempo = maestro_solver.getTempo(midi.tracks[0].mtrk_events.items);
-
-    var solver: Solver = .{
-        .instructions = midi.tracks[0].mtrk_events.items,
-        .ticks_per_quarter = midi.header.division.metrical, // only support metrical rn :)
-
-        .us_per_quarter = tempo.?,
-    };
+    // const tempo = maestro_solver.getTempo(midi.tracks[0].mtrk_events.items);
+    //
+    // var solver: Solver = .{
+    //     .instructions = midi.tracks[0].mtrk_events.items,
+    //     .ticks_per_quarter = midi.header.division.metrical, // only support metrical rn :)
+    //
+    //     .us_per_quarter = tempo.?,
+    // };
 
     var program: MaestroProgram = .{};
 
     defer program.deinit(alloc);
 
-    solver.solve(alloc, &program) catch {
-        // log.err("Solve Failed {s}", .{@errorName(err)});
-        return;
-    };
+    // solver.solve(alloc, &program) catch {
+    //     // log.err("Solve Failed {s}", .{@errorName(err)});
+    //     return;
+    // };
 
-    // program.instructions.append(alloc, .{ .timestamp = 100, .cmd = .{ .move_hand = .{
-    //     .direction = .right,
-    //     .hand = .left,
-    //     .white_keys = 1,
-    // } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 500, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 1 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 2 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 3 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 4 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 5 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 6 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 7 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 8 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 9 } } }) catch unreachable;
+    program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 10 } } }) catch unreachable;
+    program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 11 } } }) catch unreachable;
 
     // log.info("Solve Complete!", .{});
 

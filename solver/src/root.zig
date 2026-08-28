@@ -15,10 +15,7 @@ pub const packet = @import("packet.zig");
 
 /// How many keys back we are when translating
 /// from sequencer to keyboard
-///
-/// For testing, I'm currently like 4 octaves back
-/// (we have a smaller fixture rn)
-const KEY_OFFSET: usize = 0;
+const KEY_OFFSET: usize = 36;
 
 fn ticksPerKeyMove(ticks_per_quarter: u16, us_per_quarter: u24) usize {
     return (the_hand.TIME_TO_MOVE_KEY * 1000 * @as(usize, ticks_per_quarter)) /

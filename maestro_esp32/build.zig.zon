@@ -14,7 +14,7 @@
         },
         .solver = .{
             .url = "../solver",
-            .hash = "solver-0.0.0-bA3jKORwAACvUc-cfk1zsaur0k6OxJCvpWUDT3l3yvzy",
+            .hash = "solver-0.0.0-bA3jKItwAACkPAsa3gUqAlVWTZnejIJXanU8gpCw9_z1",
         },
     },
     .paths = .{
