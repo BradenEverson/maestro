@@ -71,6 +71,14 @@ pub const MaestroCommand = union(enum) {
         white_keys: usize,
     },
 
+    pub fn hand(cmd: *const MaestroCommand) Hand {
+        return switch (cmd.*) {
+            .note_on => |n| n.hand,
+            .note_off => |n| n.hand,
+            .move_hand => |h| h.hand,
+        };
+    }
+
     pub fn toPacket(cmd: *const MaestroCommand) packet.RightHandMessage {
         switch (cmd.*) {
             .note_on => |note_on| {
@@ -82,7 +90,7 @@ pub const MaestroCommand = union(enum) {
             },
 
             .move_hand => |move_hand| {
-                const dir = @intFromEnum(move_hand.direction);
+                const dir = move_hand.direction;
                 const white_keys: u8 = @truncate(move_hand.white_keys);
 
                 return .{ .move = .{ .dir = dir, .white_keys = white_keys } };

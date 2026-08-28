@@ -7,8 +7,9 @@ const MIDI = @import("midi");
 const Hand = @import("hand.zig");
 const Note = Hand.Note;
 
-const Solver = @import("solver").Solver;
-const MaestroProgram = @import("solver").MaestroProgram;
+const maestro_solver = @import("solver");
+const Solver = maestro_solver.Solver;
+const MaestroProgram = maestro_solver.MaestroProgram;
 
 const test_midi = @embedFile("took_her_to_the_o_short_notes.mid");
 
@@ -37,7 +38,11 @@ pub fn setPin(port: c_uint, pins: struct {
     if (ret != sys.ESP_OK) return error.SetPinFailed;
 }
 
+const MAX_BUFFER_SIZE: usize = 256;
+
 export fn app_main() callconv(.c) void {
+    var packet_buffer: [MAX_BUFFER_SIZE]u8 = undefined;
+
     var heap: idf.heap.VPortAllocator = .init();
     const alloc = heap.allocator();
 
@@ -51,27 +56,34 @@ export fn app_main() callconv(.c) void {
         .tx_buffer_size = 0,
     }) catch unreachable;
 
-    var midi = MIDI.fromBytes(alloc, test_midi) catch |err| {
-        log.err("MIDI Parse Failed {s}", .{@errorName(err)});
+    var midi = MIDI.fromBytes(alloc, test_midi) catch {
+        // log.err("MIDI Parse Failed {s}", .{@errorName(err)});
         return;
     };
     defer midi.deinit(alloc);
 
-    log.info("Parse Complete!", .{});
-    log.info("Solving MIDI!", .{});
+    // log.info("Parse Complete!", .{});
+    // log.info("Solving MIDI!", .{});
 
-    var solver = Solver{ .instructions = midi.tracks[0].mtrk_events.items };
+    const tempo = maestro_solver.getTempo(midi.tracks[0].mtrk_events.items);
+
+    var solver: Solver = .{
+        .instructions = midi.tracks[0].mtrk_events.items,
+        .ticks_per_quarter = midi.header.division.metrical, // only support metrical rn :)
+
+        .us_per_quarter = tempo.?,
+    };
 
     var program: MaestroProgram = .{};
 
     defer program.deinit(alloc);
 
-    solver.solve(alloc, &program) catch |err| {
-        log.err("Solve Failed {s}", .{@errorName(err)});
+    solver.solve(alloc, &program) catch {
+        // log.err("Solve Failed {s}", .{@errorName(err)});
         return;
     };
 
-    log.info("Solve Complete!", .{});
+    // log.info("Solve Complete!", .{});
 
     var hand = Hand.init(
         [_]idf.gpio.Num(){
@@ -93,22 +105,22 @@ export fn app_main() callconv(.c) void {
         .@"40",
 
         0,
-    ) catch |err| {
-        log.err("Hand Init Failed :((( {s}", .{@errorName(err)});
+    ) catch {
+        // log.err("Hand Init Failed :((( {s}", .{@errorName(err)});
         return;
     };
 
     const RTOS_HZ: u32 = 1000;
 
     if (midi.header.division != .metrical) {
-        log.err("Only metrical supported for now", .{});
+        // log.err("Only metrical supported for now", .{});
         return;
     }
 
     const ticks_per_qn: u32 = @intCast(midi.header.division.metrical);
 
     const tempo_us = program.tempo;
-    log.info("Tempo: {} BPM\n", .{60_000_000 / @as(u32, tempo_us)});
+    // log.info("Tempo: {} BPM\n", .{60_000_000 / @as(u32, tempo_us)});
 
     for (program.instructions.items) |instr| {
         const delay_ticks: u32 = @intCast(
@@ -116,42 +128,49 @@ export fn app_main() callconv(.c) void {
                 (@as(u64, ticks_per_qn) * 1_000_000),
         );
 
-        log.info("{any} - {}", .{ instr, delay_ticks });
+        // log.info("{any} - {}", .{ instr, delay_ticks });
         if (delay_ticks > 0) {
             idf.rtos.Task.delay(delay_ticks);
         }
 
-        switch (instr.cmd) {
-            .note_on => |note_on| {
-                // TODO: Eventually, we will have two hands
-                // for now, treat it all as a command to this
-                // one hand :)
+        if (instr.cmd.hand() == .right) {
+            const packet = instr.cmd.toPacket();
+            const send = packet.toBytesToSend(&packet_buffer);
 
-                log.info("ON: {}", .{note_on.relative_note});
-                hand.pressNote(note_on.relative_note) catch unreachable;
-            },
+            _ = idf.uart.writeBytes(UART_PORT, send) catch unreachable;
+        } else {
+            switch (instr.cmd) {
+                .note_on => |note_on| {
+                    // TODO: Eventually, we will have two hands
+                    // for now, treat it all as a command to this
+                    // one hand :)
 
-            .note_off => |note_off| {
-                // TODO: Same deal
-                log.info("OFF: {}", .{note_off.relative_note});
-                hand.depressNote(note_off.relative_note) catch unreachable;
-            },
+                    // log.info("ON: {}", .{note_on.relative_note});
+                    hand.pressNote(note_on.relative_note) catch unreachable;
+                },
 
-            .move_hand => |move_info| {
-                // TODO: same deal, hand will eventually be
-                // many hands woohooo
-                log.info("MOVING {} keys {any}", .{ move_info.white_keys, move_info.direction });
+                .note_off => |note_off| {
+                    // TODO: Same deal
+                    // log.info("OFF: {}", .{note_off.relative_note});
+                    hand.depressNote(note_off.relative_note) catch unreachable;
+                },
 
-                for (0..move_info.white_keys) |_|
-                    hand.moveNote(move_info.direction) catch {
-                        log.err("Move Failed!!!", .{});
-                        unreachable;
-                    };
-            },
+                .move_hand => |move_info| {
+                    // TODO: same deal, hand will eventually be
+                    // many hands woohooo
+                    // log.info("MOVING {} keys {any}", .{ move_info.white_keys, move_info.direction });
+
+                    for (0..move_info.white_keys) |_|
+                        hand.moveNote(move_info.direction) catch {
+                            // log.err("Move Failed!!!", .{});
+                            unreachable;
+                        };
+                },
+            }
         }
     }
 
-    log.info("DONE", .{});
+    // log.info("DONE", .{});
 
     // TODO: Home for the right stepper is opposite
     hand.stepper.goHome() catch unreachable;
