@@ -35,12 +35,11 @@ pub fn init(
 }
 
 pub fn home(stepper: *Self, home_direction: Direction) !void {
-    // _ = stepper;
-    // _ = home_direction;
-
     try stepper.switchDirection(home_direction);
 
-    var homed = false;
+    var homed = idf.gpio.Level
+        .get(stepper.endstop_pin);
+
     stepper.relative_position = 255;
 
     while (!homed) {
@@ -48,6 +47,13 @@ pub fn home(stepper: *Self, home_direction: Direction) !void {
         homed = idf.gpio.Level
             .get(stepper.endstop_pin);
     }
+
+    const other_dir: Direction = if (home_direction == .left) .right else .left;
+    try stepper.switchDirection(other_dir);
+
+    try stepper.step();
+    try stepper.step();
+    try stepper.step();
 
     stepper.relative_position = 0;
 }

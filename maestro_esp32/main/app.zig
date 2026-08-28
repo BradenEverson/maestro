@@ -93,12 +93,13 @@ export fn app_main() callconv(.c) void {
     // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 7 } } }) catch unreachable;
     // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 8 } } }) catch unreachable;
     // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 9 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 10 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 11 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 10 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 11 } } }) catch unreachable;
 
     // log.info("Solve Complete!", .{});
 
     var hand = Hand.init(
+        // Octave of solonoids
         [_]idf.gpio.Num(){
             .@"4",
             .@"5",
@@ -114,8 +115,12 @@ export fn app_main() callconv(.c) void {
             .@"9",
         },
 
+        // step
         .@"41",
+        // dir
         .@"40",
+
+        // endstop!
         .@"10",
 
         0,
@@ -186,7 +191,6 @@ export fn app_main() callconv(.c) void {
 
     // log.info("DONE", .{});
 
-    // TODO: Home for the right stepper is opposite
     hand.stepper.goHome() catch unreachable;
 
     while (true) {
