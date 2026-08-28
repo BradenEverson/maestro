@@ -11,6 +11,8 @@ const Hand = the_hand.Hand;
 
 const PIANO_LEN: usize = 61;
 
+pub const packet = @import("packet.zig");
+
 /// How many keys back we are when translating
 /// from sequencer to keyboard
 ///
@@ -68,6 +70,25 @@ pub const MaestroCommand = union(enum) {
         direction: Direction,
         white_keys: usize,
     },
+
+    pub fn toPacket(cmd: *const MaestroCommand) packet.RightHandMessage {
+        switch (cmd.*) {
+            .note_on => |note_on| {
+                return .{ .press = @truncate(note_on.relative_note) };
+            },
+
+            .note_off => |note_off| {
+                return .{ .depress = @truncate(note_off.relative_note) };
+            },
+
+            .move_hand => |move_hand| {
+                const dir = @intFromEnum(move_hand.direction);
+                const white_keys: u8 = @truncate(move_hand.white_keys);
+
+                return .{ .move = .{ .dir = dir, .white_keys = white_keys } };
+            },
+        }
+    }
 };
 
 pub const Solver = struct {
