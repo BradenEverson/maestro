@@ -64,7 +64,7 @@ export fn app_main() callconv(.c) void {
 
     // log.info("Parse Complete!", .{});
     // log.info("Solving MIDI!", .{});
-
+    //
     const tempo = maestro_solver.getTempo(midi.tracks[0].mtrk_events.items);
 
     var solver: Solver = .{
@@ -82,6 +82,12 @@ export fn app_main() callconv(.c) void {
         // log.err("Solve Failed {s}", .{@errorName(err)});
         return;
     };
+
+    // program.instructions.append(alloc, .{ .timestamp = 100, .cmd = .{ .move_hand = .{
+    //     .direction = .right,
+    //     .hand = .left,
+    //     .white_keys = 1,
+    // } } }) catch unreachable;
 
     // log.info("Solve Complete!", .{});
 
@@ -103,6 +109,7 @@ export fn app_main() callconv(.c) void {
 
         .@"41",
         .@"40",
+        .@"10",
 
         0,
     ) catch {

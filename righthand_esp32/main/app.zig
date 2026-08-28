@@ -12,6 +12,10 @@ const BUF_SIZE = 256;
 const TX_PIN: c_int = 43;
 const RX_PIN: c_int = 44;
 
+const maestro_solver = @import("solver");
+const Solver = maestro_solver.Solver;
+const MaestroProgram = maestro_solver.MaestroProgram;
+
 pub fn setPin(port: c_uint, pins: struct {
     tx: c_int = sys.UART_PIN_NO_CHANGE,
     rx: c_int = sys.UART_PIN_NO_CHANGE,

@@ -55,6 +55,7 @@ pub fn init(
     notes: [NOTE_COUNT]idf.gpio.Num(),
     step: idf.gpio.Num(),
     dir: idf.gpio.Num(),
+    endstop: idf.gpio.Num(),
     level: u8,
 ) !Hand {
     for (notes) |note| {
@@ -62,10 +63,13 @@ pub fn init(
         try idf.gpio.Level.set(note, 0);
     }
 
-    const stepper = try Stepper.init(
+    var stepper = try Stepper.init(
         step,
         dir,
+        endstop,
     );
+
+    try stepper.home(.left);
 
     return .{
         .note_gpios = notes,
@@ -102,14 +106,15 @@ pub fn depressNote(self: *Hand, note: usize) !void {
 //     try idf.gpio.Level.set(selection, 0);
 // }
 
-const stepsToLevel: usize = 233;
+const stepsToOctave: usize = 430;
+const stepsToLevel: usize = 61;
 
 pub fn moveNote(
     self: *Hand,
     direction: Direction,
 ) !void {
     try self.stepper.switchDirection(direction);
-    for (0..233) |_| {
+    for (0..stepsToLevel) |_| {
         try self.stepper.step();
     }
 }
