@@ -63,48 +63,43 @@ pub const HandInfo = struct {
     }
 
     pub fn covers(hand: *const HandInfo, global_key: usize) bool {
-        var cond = (global_key >= hand.index) and
+        const in_range = (global_key >= hand.index) and
             (global_key < hand.index + OCTAVE_SIZE);
 
+        if (!in_range) return false;
+
+        const local = global_key - hand.index;
+
         if (isBlackKey(global_key)) {
-            cond = cond and hand.isOctaveAligned();
+            return isBlackKey(local) and hand.isOctaveAligned();
         }
 
-        return cond;
+        return !isBlackKey(local);
     }
 
     fn nearestValidIndex(hand: *const HandInfo, go_to: usize) usize {
-        // if (isBlackKey(go_to)) {
-        _ = hand;
+        if (isBlackKey(go_to)) {
+            const octave = go_to / OCTAVE_SIZE;
+            return octave * OCTAVE_SIZE;
+        }
 
-        const octave = go_to / OCTAVE_SIZE;
-        return octave * OCTAVE_SIZE;
-        // }
-        //
-        // const naive: usize = if (go_to > hand.index)
-        //     go_to -| (OCTAVE_SIZE - 1)
-        // else
-        //     go_to;
-        //
-        // const candidate = naive;
-        // var offset: usize = 0;
-        // while (offset < OCTAVE_SIZE) : (offset += 1) {
-        //     const try_idx = if (candidate >= offset) candidate - offset else candidate + offset;
-        //     if (slotTypeMatches(try_idx, go_to) and
-        //         go_to >= try_idx and go_to < try_idx + OCTAVE_SIZE)
-        //     {
-        //         return try_idx;
-        //     }
-        //     const try_idx2 = candidate + offset;
-        //     if (slotTypeMatches(try_idx2, go_to) and
-        //         go_to >= try_idx2 and go_to < try_idx2 + OCTAVE_SIZE)
-        //     {
-        //         return try_idx2;
-        //     }
-        // }
-        //
-        // const octave = go_to / OCTAVE_SIZE;
-        // return octave * OCTAVE_SIZE;
+        const lo: usize = go_to -| (OCTAVE_SIZE - 1);
+
+        var best_idx: usize = go_to;
+        var best_dist: usize = whiteKeyDistance(hand.index, go_to);
+
+        var try_idx = lo;
+        while (try_idx < go_to) : (try_idx += 1) {
+            if (slotTypeMatches(try_idx, go_to)) {
+                const dist = whiteKeyDistance(hand.index, try_idx);
+                if (dist < best_dist) {
+                    best_dist = dist;
+                    best_idx = try_idx;
+                }
+            }
+        }
+
+        return best_idx;
     }
 
     pub fn timeToGetThere(hand: *const HandInfo, go_to: usize, ticks_per_key: usize) usize {
