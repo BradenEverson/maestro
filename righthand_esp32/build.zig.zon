@@ -10,7 +10,7 @@
     .dependencies = .{
         .solver = .{
             .url = "../solver",
-            .hash = "solver-0.0.0-bA3jKORwAACvUc-cfk1zsaur0k6OxJCvpWUDT3l3yvzy",
+            .hash = "solver-0.0.0-bA3jKOhwAACPsv_lSwe82eF8nLJFZ_Md6ImgP5eq8Fkv",
         },
     },
     .paths = .{

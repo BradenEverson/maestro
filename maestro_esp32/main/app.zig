@@ -83,18 +83,18 @@ export fn app_main() callconv(.c) void {
     //     return;
     // };
 
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 500, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 1 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 2 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 3 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 4 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 5 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 6 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 7 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 8 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 9 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 10 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 11 } } }) catch unreachable;
+    program.instructions.append(alloc, .{ .timestamp = 500, .delay = 500, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
+    program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 1 } } }) catch unreachable;
+    program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 2 } } }) catch unreachable;
+    program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 3 } } }) catch unreachable;
+    program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 4 } } }) catch unreachable;
+    program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 5 } } }) catch unreachable;
+    program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 6 } } }) catch unreachable;
+    program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 7 } } }) catch unreachable;
+    program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 8 } } }) catch unreachable;
+    program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 9 } } }) catch unreachable;
+    program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 10 } } }) catch unreachable;
+    program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 11 } } }) catch unreachable;
 
     // log.info("Solve Complete!", .{});
 
@@ -112,7 +112,8 @@ export fn app_main() callconv(.c) void {
             .@"8",
             .@"3",
             .@"46",
-            .@"9",
+            // .@"9",
+            .@"37",
         },
 
         // step

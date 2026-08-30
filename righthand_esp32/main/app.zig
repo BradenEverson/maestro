@@ -13,8 +13,7 @@ const TX_PIN: c_int = 43;
 const RX_PIN: c_int = 44;
 
 const maestro_solver = @import("solver");
-const Solver = maestro_solver.Solver;
-const MaestroProgram = maestro_solver.MaestroProgram;
+const MessageParser = maestro_solver.packet.MessageParser;
 
 pub fn setPin(port: c_uint, pins: struct {
     tx: c_int = sys.UART_PIN_NO_CHANGE,
@@ -36,6 +35,8 @@ export fn app_main() callconv(.c) void {
     var heap: idf.heap.VPortAllocator = .init();
     const alloc = heap.allocator();
 
+    var parser: MessageParser = .{};
+
     _ = alloc;
 
     setPin(UART_PORT, .{
@@ -51,8 +52,10 @@ export fn app_main() callconv(.c) void {
     var buf: [BUF_SIZE]u8 = undefined;
     while (true) {
         const n = idf.uart.readBytes(UART_PORT, &buf, sys.portMAX_DELAY) catch unreachable;
-        if (n > 0) {
-            _ = idf.uart.writeBytes(UART_PORT, buf[0..n]) catch unreachable;
+        for (0..n) |_| {
+            if (parser.feedByte(buf[n])) |msg| {
+                _ = msg;
+            }
         }
     }
 }
