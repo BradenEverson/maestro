@@ -15,7 +15,7 @@ pub const packet = @import("packet.zig");
 
 /// How many keys back we are when translating
 /// from sequencer to keyboard
-const KEY_OFFSET: usize = 36;
+const KEY_OFFSET: usize = 0;
 
 fn ticksPerKeyMove(ticks_per_quarter: u16, us_per_quarter: u24) usize {
     return (the_hand.TIME_TO_MOVE_KEY * 1000 * @as(usize, ticks_per_quarter)) /
@@ -413,7 +413,9 @@ pub const Solver = struct {
         for (solver.instructions, 0..) |*event, i| {
             if (event.event == .midi) {
                 switch (event.event.midi) {
-                    .note_on => event.event.midi.note_on.@"1".key -= KEY_OFFSET,
+                    .note_on => {
+                        event.event.midi.note_on.@"1".key -= KEY_OFFSET;
+                    },
                     .note_off => {
                         event.event.midi.note_off.@"1".key -= KEY_OFFSET;
 

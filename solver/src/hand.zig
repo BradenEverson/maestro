@@ -74,35 +74,37 @@ pub const HandInfo = struct {
     }
 
     fn nearestValidIndex(hand: *const HandInfo, go_to: usize) usize {
-        if (isBlackKey(go_to)) {
-            const octave = go_to / OCTAVE_SIZE;
-            return octave * OCTAVE_SIZE;
-        }
-
-        const naive: usize = if (go_to > hand.index)
-            go_to -| (OCTAVE_SIZE - 1)
-        else
-            go_to;
-
-        const candidate = naive;
-        var offset: usize = 0;
-        while (offset < OCTAVE_SIZE) : (offset += 1) {
-            const try_idx = if (candidate >= offset) candidate - offset else candidate + offset;
-            if (slotTypeMatches(try_idx, go_to) and
-                go_to >= try_idx and go_to < try_idx + OCTAVE_SIZE)
-            {
-                return try_idx;
-            }
-            const try_idx2 = candidate + offset;
-            if (slotTypeMatches(try_idx2, go_to) and
-                go_to >= try_idx2 and go_to < try_idx2 + OCTAVE_SIZE)
-            {
-                return try_idx2;
-            }
-        }
+        // if (isBlackKey(go_to)) {
+        _ = hand;
 
         const octave = go_to / OCTAVE_SIZE;
         return octave * OCTAVE_SIZE;
+        // }
+        //
+        // const naive: usize = if (go_to > hand.index)
+        //     go_to -| (OCTAVE_SIZE - 1)
+        // else
+        //     go_to;
+        //
+        // const candidate = naive;
+        // var offset: usize = 0;
+        // while (offset < OCTAVE_SIZE) : (offset += 1) {
+        //     const try_idx = if (candidate >= offset) candidate - offset else candidate + offset;
+        //     if (slotTypeMatches(try_idx, go_to) and
+        //         go_to >= try_idx and go_to < try_idx + OCTAVE_SIZE)
+        //     {
+        //         return try_idx;
+        //     }
+        //     const try_idx2 = candidate + offset;
+        //     if (slotTypeMatches(try_idx2, go_to) and
+        //         go_to >= try_idx2 and go_to < try_idx2 + OCTAVE_SIZE)
+        //     {
+        //         return try_idx2;
+        //     }
+        // }
+        //
+        // const octave = go_to / OCTAVE_SIZE;
+        // return octave * OCTAVE_SIZE;
     }
 
     pub fn timeToGetThere(hand: *const HandInfo, go_to: usize, ticks_per_key: usize) usize {
