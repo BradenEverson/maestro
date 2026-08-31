@@ -11,7 +11,7 @@ const maestro_solver = @import("solver");
 const Solver = maestro_solver.Solver;
 const MaestroProgram = maestro_solver.MaestroProgram;
 
-const test_midi = @embedFile("took_her_to_the_o_short_notes.mid");
+const test_midi = @embedFile("ode_to_joy.mid");
 
 const log = std.log.scoped(.maestro);
 
