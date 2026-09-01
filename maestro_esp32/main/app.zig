@@ -61,13 +61,6 @@ export fn app_main() callconv(.c) void {
         .rx = RX_PIN,
     }) catch unreachable;
 
-    // var buf: [256]u8 = undefined;
-    //
-    // _ = idf.uart.writeBytes(UART_PORT, "hello") catch unreachable;
-    // const size = idf.uart.readBytes(UART_PORT, &buf, 100) catch unreachable;
-    // log.info("read {} bytes", .{size});
-    // log.info("{s}", .{buf[0..size]});
-
     var midi = MIDI.fromBytes(alloc, test_midi) catch {
         // log.err("MIDI Parse Failed {s}", .{@errorName(err)});
         return;
@@ -95,36 +88,38 @@ export fn app_main() callconv(.c) void {
         return;
     };
 
-    program.instructions.clearAndFree(alloc);
-
+    // Clear solved instructions and such if we need to test specific movements!
+    //
+    // program.instructions.clearAndFree(alloc);
+    //
     // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 500, .cmd = .{ .move_hand = .{ .hand = .left, .white_keys = 1, .direction = .right } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 5000, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 0 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 1 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 2 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 3 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 4 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 5 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 6 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 7 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 8 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 9 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 10 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 11 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 5000, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 0 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 1 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 2 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 3 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 4 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 5 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 6 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 7 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 8 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 9 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 10 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 11 } } }) catch unreachable;
+    //
+    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 5000, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 0 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 1 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 2 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 3 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 4 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 5 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 6 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 7 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 8 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 9 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 10 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 11 } } }) catch unreachable;
 
-    program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 5000, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 0 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 1 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 2 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 3 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 4 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 5 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 6 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 7 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 8 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 9 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 10 } } }) catch unreachable;
-    program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 11 } } }) catch unreachable;
-
-    // log.info("Solve Complete!", .{});
+    log.info("Solve Complete!", .{});
 
     var hand = Hand.init(
         // Octave of solonoids

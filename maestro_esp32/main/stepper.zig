@@ -40,22 +40,25 @@ pub fn home(stepper: *Self, home_direction: Direction) !void {
     var homed = idf.gpio.Level
         .get(stepper.endstop_pin);
 
-    stepper.relative_position = 255;
-
     while (!homed) {
+        stepper.relative_position = 100;
         try stepper.step();
         homed = idf.gpio.Level
             .get(stepper.endstop_pin);
+
+        idf.rtos.Task.delayMs(5);
     }
 
     const other_dir: Direction = if (home_direction == .left) .right else .left;
     try stepper.switchDirection(other_dir);
 
-    try stepper.step();
-    try stepper.step();
-    try stepper.step();
+    for (0..100) |_| {
+        try stepper.step();
+        idf.rtos.Task.delayMs(20);
+    }
 
     stepper.relative_position = 0;
+    idf.rtos.Task.delayMs(1000);
 }
 
 pub fn step(stepper: *Self) !void {
