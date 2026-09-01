@@ -5,7 +5,7 @@ const sys = idf.sys;
 
 const log = std.log.scoped(.right_hand_man);
 
-const UART_PORT: c_uint = 0; // UART0
+const UART_PORT: c_uint = 1; // UART0
 const BAUD_RATE = 115200;
 const BUF_SIZE = 256;
 
@@ -74,16 +74,19 @@ export fn app_main() callconv(.c) void {
 
     log.info("Hand made", .{});
 
-    setPin(UART_PORT, .{
-        .tx = TX_PIN,
-        .rx = RX_PIN,
+    idf.uart.driverInstall(UART_PORT, .{
+        .rx_buffer_size = BUF_SIZE * 2,
+        .tx_buffer_size = 0,
     }) catch unreachable;
 
     idf.uart.setBaudrate(UART_PORT, BAUD_RATE) catch unreachable;
+    idf.uart.setWordLength(UART_PORT, idf.sys.UART_DATA_8_BITS) catch unreachable;
+    idf.uart.setParity(UART_PORT, idf.sys.UART_PARITY_DISABLE) catch unreachable;
+    idf.uart.setStopBits(UART_PORT, idf.sys.UART_STOP_BITS_1) catch unreachable;
 
-    idf.uart.driverInstall(UART_PORT, .{
-        .rx_buffer_size = BUF_SIZE * 2,
-        .tx_buffer_size = BUF_SIZE * 2,
+    setPin(UART_PORT, .{
+        .tx = TX_PIN,
+        .rx = RX_PIN,
     }) catch unreachable;
 
     log.info("UART ready", .{});
