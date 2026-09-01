@@ -5,12 +5,12 @@ const sys = idf.sys;
 
 const log = std.log.scoped(.right_hand_man);
 
-const UART_PORT: c_uint = 1; // UART0
+const UART_PORT: c_uint = 1; // UART1
 const BAUD_RATE = 115200;
 const BUF_SIZE = 256;
 
-const TX_PIN: c_int = 43;
-const RX_PIN: c_int = 44;
+const TX_PIN: c_int = 38;
+const RX_PIN: c_int = 39;
 
 const maestro_solver = @import("solver");
 const MessageParser = maestro_solver.packet.MessageParser;
@@ -91,38 +91,41 @@ export fn app_main() callconv(.c) void {
 
     log.info("UART ready", .{});
 
-    var buf: [BUF_SIZE]u8 = undefined;
+    var buf: [1]u8 = undefined;
     while (true) {
         const n = idf.uart.readBytes(UART_PORT, &buf, 100) catch unreachable;
-        for (0..n) |i| {
-            log.info("byte {X}", .{buf[i]});
-            if (parser.feedByte(buf[i])) |msg| {
-                log.info("Message received: {any}", .{msg});
-                switch (msg) {
-                    .press => |press| {
-                        hand.pressNote(@as(usize, press)) catch {
-                            // log.err("press Failed!!!", .{});
-                            unreachable;
-                        };
-                    },
-
-                    .depress => |depress| {
-                        hand.depressNote(@as(usize, depress)) catch {
-                            // log.err("depress Failed!!!", .{});
-                            unreachable;
-                        };
-                    },
-
-                    .move => |move| {
-                        for (0..move.white_keys) |_| {
-                            hand.moveNote(move.dir) catch {
-                                // log.err("Move Failed!!!", .{});
+        if (n > 0) {
+            for (0..n) |i| {
+                if (parser.feedByte(buf[i])) |msg| {
+                    log.info("Message received: {any}", .{msg});
+                    switch (msg) {
+                        .press => |press| {
+                            hand.pressNote(@as(usize, press)) catch {
+                                // log.err("press Failed!!!", .{});
                                 unreachable;
                             };
-                        }
-                    },
+                        },
+
+                        .depress => |depress| {
+                            hand.depressNote(@as(usize, depress)) catch {
+                                // log.err("depress Failed!!!", .{});
+                                unreachable;
+                            };
+                        },
+
+                        .move => |move| {
+                            for (0..move.white_keys) |_| {
+                                hand.moveNote(move.dir) catch {
+                                    // log.err("Move Failed!!!", .{});
+                                    unreachable;
+                                };
+                            }
+                        },
+                    }
                 }
             }
+        } else {
+            // log.info("No byte received :(", .{});
         }
     }
 }
