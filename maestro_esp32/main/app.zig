@@ -11,11 +11,11 @@ const maestro_solver = @import("solver");
 const Solver = maestro_solver.Solver;
 const MaestroProgram = maestro_solver.MaestroProgram;
 
-const test_midi = @embedFile("ode_to_joy.mid");
+const test_midi = @embedFile("took_her_to_the_o_short_notes.mid");
 
 const log = std.log.scoped(.maestro);
 
-const UART_PORT: c_uint = 1; // UART1
+const UART_PORT: c_uint = 0; // UART0
 const BAUD_RATE = 115200;
 const BUF_SIZE = 256;
 
@@ -51,9 +51,11 @@ export fn app_main() callconv(.c) void {
         .rx = RX_PIN,
     }) catch unreachable;
 
+    idf.uart.setBaudrate(UART_PORT, BAUD_RATE) catch unreachable;
+
     idf.uart.driverInstall(UART_PORT, .{
         .rx_buffer_size = BUF_SIZE * 2,
-        .tx_buffer_size = 0,
+        .tx_buffer_size = BUF_SIZE * 2,
     }) catch unreachable;
 
     var midi = MIDI.fromBytes(alloc, test_midi) catch {
@@ -62,8 +64,8 @@ export fn app_main() callconv(.c) void {
     };
     defer midi.deinit(alloc);
 
-    // log.info("Parse Complete!", .{});
-    // log.info("Solving MIDI!", .{});
+    log.info("Parse Complete!", .{});
+    log.info("Solving MIDI!", .{});
 
     const tempo = maestro_solver.getTempo(midi.tracks[0].mtrk_events.items);
 
@@ -83,18 +85,18 @@ export fn app_main() callconv(.c) void {
         return;
     };
 
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 500, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 1 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 2 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 3 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 4 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 5 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 6 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 7 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 8 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 9 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 10 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 11 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 500, .cmd = .{ .move_hand = .{ .hand = .left, .white_keys = 1, .direction = .right } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 1 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 2 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 3 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 4 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 5 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 6 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 7 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 8 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 9 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 10 } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 11 } } }) catch unreachable;
 
     // log.info("Solve Complete!", .{});
 
@@ -153,37 +155,37 @@ export fn app_main() callconv(.c) void {
         }
 
         if (instr.cmd.hand() == .right) {
+            log.info("Sending Msg: {any}", .{instr.cmd});
+
             const packet = instr.cmd.toPacket();
             const send = packet.toBytesToSend(&packet_buffer);
 
-            _ = idf.uart.writeBytes(UART_PORT, send) catch unreachable;
+            log.info("{X}", .{send});
+
+            _ = idf.uart.writeBytes(UART_PORT, send) catch {
+                log.err("Failed to write", .{});
+            };
         } else {
             switch (instr.cmd) {
                 .note_on => |note_on| {
-                    // TODO: Eventually, we will have two hands
-                    // for now, treat it all as a command to this
-                    // one hand :)
-
-                    // log.info("ON: {}", .{note_on.relative_note});
+                    log.info("ON: {}", .{note_on.relative_note});
                     hand.pressNote(note_on.relative_note) catch unreachable;
                 },
 
                 .note_off => |note_off| {
-                    // TODO: Same deal
-                    // log.info("OFF: {}", .{note_off.relative_note});
+                    log.info("OFF: {}", .{note_off.relative_note});
                     hand.depressNote(note_off.relative_note) catch unreachable;
                 },
 
                 .move_hand => |move_info| {
-                    // TODO: same deal, hand will eventually be
-                    // many hands woohooo
-                    // log.info("MOVING {} keys {any}", .{ move_info.white_keys, move_info.direction });
+                    log.info("MOVING {} keys {any}", .{ move_info.white_keys, move_info.direction });
 
-                    for (0..move_info.white_keys) |_|
+                    for (0..move_info.white_keys) |_| {
                         hand.moveNote(move_info.direction) catch {
                             // log.err("Move Failed!!!", .{});
                             unreachable;
                         };
+                    }
                 },
             }
         }

@@ -5,7 +5,7 @@ const sys = idf.sys;
 
 const log = std.log.scoped(.right_hand_man);
 
-const UART_PORT: c_uint = 1; // UART1
+const UART_PORT: c_uint = 0; // UART0
 const BAUD_RATE = 115200;
 const BUF_SIZE = 256;
 
@@ -14,6 +14,8 @@ const RX_PIN: c_int = 44;
 
 const maestro_solver = @import("solver");
 const MessageParser = maestro_solver.packet.MessageParser;
+
+const Hand = @import("hand.zig");
 
 pub fn setPin(port: c_uint, pins: struct {
     tx: c_int = sys.UART_PIN_NO_CHANGE,
@@ -37,24 +39,86 @@ export fn app_main() callconv(.c) void {
 
     var parser: MessageParser = .{};
 
+    var hand = Hand.init(
+        // Octave of solonoids
+        [_]idf.gpio.Num(){
+            .@"4",
+            .@"18",
+            .@"5",
+            .@"8",
+            .@"6",
+            .@"7",
+            .@"3",
+            .@"15",
+            .@"46",
+            .@"16",
+            .@"37",
+            .@"17",
+        },
+
+        // step
+        .@"41",
+        // dir
+        .@"40",
+
+        // endstop!
+        .@"10",
+
+        0,
+    ) catch |err| {
+        log.err("Hand Init Failed :((( {s}", .{@errorName(err)});
+        return;
+    };
+
     _ = alloc;
+
+    log.info("Hand made", .{});
 
     setPin(UART_PORT, .{
         .tx = TX_PIN,
         .rx = RX_PIN,
     }) catch unreachable;
 
+    idf.uart.setBaudrate(UART_PORT, BAUD_RATE) catch unreachable;
+
     idf.uart.driverInstall(UART_PORT, .{
         .rx_buffer_size = BUF_SIZE * 2,
-        .tx_buffer_size = 0,
+        .tx_buffer_size = BUF_SIZE * 2,
     }) catch unreachable;
+
+    log.info("UART ready", .{});
 
     var buf: [BUF_SIZE]u8 = undefined;
     while (true) {
-        const n = idf.uart.readBytes(UART_PORT, &buf, sys.portMAX_DELAY) catch unreachable;
-        for (0..n) |_| {
-            if (parser.feedByte(buf[n])) |msg| {
-                _ = msg;
+        const n = idf.uart.readBytes(UART_PORT, &buf, 100) catch unreachable;
+        for (0..n) |i| {
+            log.info("byte {X}", .{buf[i]});
+            if (parser.feedByte(buf[i])) |msg| {
+                log.info("Message received: {any}", .{msg});
+                switch (msg) {
+                    .press => |press| {
+                        hand.pressNote(@as(usize, press)) catch {
+                            // log.err("press Failed!!!", .{});
+                            unreachable;
+                        };
+                    },
+
+                    .depress => |depress| {
+                        hand.depressNote(@as(usize, depress)) catch {
+                            // log.err("depress Failed!!!", .{});
+                            unreachable;
+                        };
+                    },
+
+                    .move => |move| {
+                        for (0..move.white_keys) |_| {
+                            hand.moveNote(move.dir) catch {
+                                // log.err("Move Failed!!!", .{});
+                                unreachable;
+                            };
+                        }
+                    },
+                }
             }
         }
     }

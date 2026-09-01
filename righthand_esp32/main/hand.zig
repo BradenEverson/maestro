@@ -28,7 +28,7 @@ pub const Note = enum(usize) {
     gsharp,
     asharp,
 };
-const NOTE_COUNT: usize = @typeInfo(Note).@"enum".fields.len;
+const NOTE_COUNT: usize = 12;
 
 const Hand = @This();
 
