@@ -460,32 +460,74 @@ pub const Solver = struct {
         };
     }
 
+    fn compareEvents(_: void, lhs: Midi.TrackChunk.MTrkEvent, rhs: Midi.TrackChunk.MTrkEvent) bool {
+        return lhs.timestamp < rhs.timestamp;
+    }
+
+    pub fn shortenNotes(solver: *Solver) void {
+        const sixteenth_note = solver.ticks_per_quarter / 4;
+
+        var timestamp: u32 = 0;
+
+        for (solver.instructions) |*event| {
+            event.timestamp = timestamp + event.delta_time;
+            timestamp += event.delta_time;
+        }
+
+        for (solver.instructions, 0..) |*event, i| {
+            if (event.event == .midi) {
+                switch (event.event.midi) {
+                    .note_off => {
+                        // Go back until we see when this note was turned on, then make this timestamp that plug 1/16 of a note
+                        var found = false;
+                        var idx = i;
+
+                        const key = event.event.midi.note_off.@"1".key;
+
+                        while (!found) {
+                            idx -= 1;
+
+                            const prev_event = solver.instructions[idx];
+                            if (prev_event.event == .midi and
+                                prev_event.event.midi == .note_on and
+                                prev_event.event.midi.note_on.@"1".key == key)
+                            {
+                                found = true;
+                                event.timestamp = prev_event.timestamp + sixteenth_note;
+                            }
+                        }
+                    },
+
+                    else => {},
+                }
+            }
+        }
+
+        std.mem.sort(Midi.TrackChunk.MTrkEvent, solver.instructions, {}, compareEvents);
+
+        for (solver.instructions, 0..) |*event, i| {
+            if (i == 0) {
+                event.delta_time = event.timestamp;
+            } else {
+                event.delta_time = event.timestamp - solver.instructions[i - 1].timestamp;
+            }
+        }
+    }
+
     pub fn solve(solver: *Solver, alloc: Allocator, program: *MaestroProgram) !void {
         var timestamp: u32 = 0;
 
         solver.ticks_per_key = ticksPerKeyMove(solver.ticks_per_quarter, solver.us_per_quarter);
 
-        const sixteenth_note = solver.ticks_per_quarter / 4;
-
         // Preprocessing
-        for (solver.instructions, 0..) |*event, i| {
+
+        solver.shortenNotes();
+
+        for (solver.instructions) |*event| {
             if (event.event == .midi) {
                 switch (event.event.midi) {
-                    .note_on => {
-                        event.event.midi.note_on.@"1".key -= KEY_OFFSET;
-                    },
-                    .note_off => {
-                        event.event.midi.note_off.@"1".key -= KEY_OFFSET;
-
-                        // Force all notes to be a sixteenth note
-                        if (event.delta_time > sixteenth_note) {
-                            if (i < solver.instructions.len - 1) {
-                                solver.instructions[i + 1].delta_time += (event.delta_time - sixteenth_note);
-                            }
-
-                            event.delta_time = sixteenth_note;
-                        }
-                    },
+                    .note_on => event.event.midi.note_on.@"1".key -= KEY_OFFSET,
+                    .note_off => event.event.midi.note_off.@"1".key -= KEY_OFFSET,
                 }
             }
         }
