@@ -15,7 +15,7 @@ pub const packet = @import("packet.zig");
 
 /// How many keys back we are when translating
 /// from sequencer to keyboard
-const KEY_OFFSET: usize = 36;
+const KEY_OFFSET: usize = 24;
 
 fn ticksPerKeyMove(ticks_per_quarter: u16, us_per_quarter: u24) usize {
     return (the_hand.TIME_TO_MOVE_KEY * 1000 * @as(usize, ticks_per_quarter)) /
@@ -139,9 +139,8 @@ pub const Solver = struct {
     ) ?Hand {
         if (solver.left.getGlobalKey(note)) |_| {
             return .left;
-            // TODO: Right here too
-            // } else if (solver.right.getGlobalKey(note)) |_| {
-            //     return .right;
+        } else if (solver.right.getGlobalKey(note)) |_| {
+            return .right;
         } else {
             return null;
         }
@@ -185,8 +184,7 @@ pub const Solver = struct {
         var position: usize = time_to_do_it;
         var coverage: usize = 0;
 
-        // TODO: Check if right is blocking here too :)
-        if (solver.left.isFree()) { //and !solver.blocking(.right, gotta_go_to)) {
+        if (solver.left.isFree() and !solver.blocking(.right, gotta_go_to)) {
             // Check if distance needed to get there is within time to do it
 
             const best_pos = solver.bestPositionForTheFuture(.left, gotta_go_to, time_to_do_it);
@@ -199,21 +197,22 @@ pub const Solver = struct {
             }
         }
 
-        // TODO: Use left and right hands
+        if (solver.right.isFree() and !solver.blocking(.left, gotta_go_to)) {
+            // Check if distance needed to get there is within time to do it
+            // AND if it's less than the left distance if left is a valid
+            // candidate
+            //
+            // AND AND AND if it physically can get there
 
-        // if (solver.right.isFree() and !solver.blocking(.left, gotta_go_to)) {
-        //     // Check if distance needed to get there is within time to do it
-        //     // AND if it's less than the left distance if left is a valid
-        //     // candidate
-        //     //
-        //     // AND AND AND if it physically can get there
-        //
-        //     const time_to_get_there = solver.right.timeToGetThere(gotta_go_to, solver.ticks_per_key);
-        //     if (time_to_get_there <= time_to_do_it and time_to_get_there < best_time) {
-        //         best_candidate = .right;
-        //         best_time = time_to_get_there;
-        //     }
-        // }
+            const best_pos = solver.bestPositionForTheFuture(.right, gotta_go_to, time_to_do_it);
+
+            if (best_pos) |pos| {
+                best_candidate = .right;
+                best_time = pos.time_to_get_there;
+                coverage = pos.future_coverage;
+                position = pos.position;
+            }
+        }
 
         if (best_candidate) |candidate| {
             return .{ .hand = candidate, .new_pos = position };
