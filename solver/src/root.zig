@@ -17,6 +17,20 @@ pub const packet = @import("packet.zig");
 /// from sequencer to keyboard
 const KEY_OFFSET: usize = 24;
 
+const FUTURE_WINDOW: usize = 32;
+
+const FutureNote = struct { key: usize, time_from_now: usize };
+
+const PositionCandidate = struct { position: usize, future_coverage: usize, time_to_get_there: usize };
+
+fn coverageScore(index: usize, future: []const FutureNote) usize {
+    var score: usize = 0;
+    for (future) |f| {
+        if (the_hand.coversAt(index, f.key)) score += 1;
+    }
+    return score;
+}
+
 fn ticksPerKeyMove(ticks_per_quarter: u16, us_per_quarter: u24) usize {
     return (the_hand.TIME_TO_MOVE_KEY * 1000 * @as(usize, ticks_per_quarter)) /
         @as(usize, us_per_quarter);
@@ -151,71 +165,85 @@ pub const Solver = struct {
         hand: Hand,
         must_at_least_hit: usize,
         time_to_do_it: usize,
-    ) ?struct { position: usize, future_coverage: usize, time_to_get_there: usize } {
+        future: []const FutureNote,
+    ) ?PositionCandidate {
         const hand_info = solver.getHandConst(hand);
-        const time_to_get_there = hand_info.timeToGetThere(must_at_least_hit, solver.ticks_per_key);
 
         if (hand_info.covers(must_at_least_hit)) {
             return .{
-                .position = must_at_least_hit,
-                .future_coverage = 0,
+                .position = hand_info.index,
+                .future_coverage = coverageScore(hand_info.index, future),
                 .time_to_get_there = 0,
             };
         }
 
-        if (time_to_get_there <= time_to_do_it) {
-            return .{
-                .position = must_at_least_hit,
-                .future_coverage = 1,
-                .time_to_get_there = time_to_get_there,
-            };
+        var buf: [the_hand.OCTAVE_SIZE]usize = undefined;
+        const candidates = the_hand.candidateIndices(must_at_least_hit, &buf);
+
+        var best: ?PositionCandidate = null;
+
+        for (candidates) |cand| {
+            const time = hand_info.timeToGetThereIndex(cand, solver.ticks_per_key);
+            if (time > time_to_do_it) continue;
+
+            const score = coverageScore(cand, future);
+
+            if (best == null or score > best.?.future_coverage or
+                (score == best.?.future_coverage and time < best.?.time_to_get_there))
+            {
+                best = .{ .position = cand, .future_coverage = score, .time_to_get_there = time };
+            }
         }
 
-        return null;
+        return best;
+    }
+
+    fn evaluateHandOption(
+        solver: *Solver,
+        hand: Hand,
+        gotta_go_to: usize,
+        time_to_do_it: usize,
+        future: []const FutureNote,
+    ) ?struct { hand: Hand, new_pos: usize, move_cost: usize, net_value: isize } {
+        const other: Hand = if (hand == .left) .right else .left;
+
+        if (!solver.getHandConst(hand).isFree() or solver.blocking(other, gotta_go_to)) {
+            return null;
+        }
+
+        const pos = solver.bestPositionForTheFuture(hand, gotta_go_to, time_to_do_it, future) orelse return null;
+
+        const stranded: usize = if (pos.time_to_get_there == 0)
+            0
+        else
+            coverageScore(solver.getHandConst(hand).index, future);
+
+        const net_value: isize = @as(isize, @intCast(pos.future_coverage)) - @as(isize, @intCast(stranded));
+
+        return .{ .hand = hand, .new_pos = pos.position, .move_cost = pos.time_to_get_there, .net_value = net_value };
     }
 
     fn bestHandForTheJob(
         solver: *Solver,
         gotta_go_to: usize,
         time_to_do_it: usize,
+        future: []const FutureNote,
     ) ?struct { hand: Hand, new_pos: usize } {
-        var best_candidate: ?Hand = null;
-        var best_time: usize = std.math.maxInt(usize);
-        var position: usize = time_to_do_it;
-        var coverage: usize = 0;
+        const left_option = solver.evaluateHandOption(.left, gotta_go_to, time_to_do_it, future);
+        const right_option = solver.evaluateHandOption(.right, gotta_go_to, time_to_do_it, future);
 
-        if (solver.left.isFree() and !solver.blocking(.right, gotta_go_to)) {
-            // Check if distance needed to get there is within time to do it
+        var best = left_option;
 
-            const best_pos = solver.bestPositionForTheFuture(.left, gotta_go_to, time_to_do_it);
-
-            if (best_pos) |pos| {
-                best_candidate = .left;
-                best_time = pos.time_to_get_there;
-                coverage = pos.future_coverage;
-                position = pos.position;
+        if (right_option) |r| {
+            if (best == null or r.net_value > best.?.net_value or
+                (r.net_value == best.?.net_value and r.move_cost < best.?.move_cost))
+            {
+                best = r;
             }
         }
 
-        if (solver.right.isFree() and !solver.blocking(.left, gotta_go_to)) {
-            // Check if distance needed to get there is within time to do it
-            // AND if it's less than the left distance if left is a valid
-            // candidate
-            //
-            // AND AND AND if it physically can get there
-
-            const best_pos = solver.bestPositionForTheFuture(.right, gotta_go_to, time_to_do_it);
-
-            if (best_pos) |pos| {
-                best_candidate = .right;
-                best_time = pos.time_to_get_there;
-                coverage = pos.future_coverage;
-                position = pos.position;
-            }
-        }
-
-        if (best_candidate) |candidate| {
-            return .{ .hand = candidate, .new_pos = position };
+        if (best) |b| {
+            return .{ .hand = b.hand, .new_pos = b.new_pos };
         } else {
             return null;
         }
@@ -275,6 +303,32 @@ pub const Solver = struct {
         };
     }
 
+    fn futureDemand(
+        solver: *const Solver,
+        horizon_ticks: usize,
+        buf: []FutureNote,
+    ) []FutureNote {
+        var n: usize = 0;
+        var elapsed: usize = 0;
+        var idx = solver.instruction_pointer + 1;
+
+        while (idx < solver.instructions.len and n < buf.len) : (idx += 1) {
+            const event = solver.instructions[idx];
+            elapsed += event.delta_time;
+            if (elapsed > horizon_ticks) break;
+
+            if (event.event == .midi and event.event.midi == .note_on) {
+                buf[n] = .{
+                    .key = event.event.midi.note_on.@"1".key,
+                    .time_from_now = elapsed,
+                };
+                n += 1;
+            }
+        }
+
+        return buf[0..n];
+    }
+
     fn startAt(solver: *const Solver) usize {
         for (solver.instructions) |instr| {
             if (instr.event == .midi and
@@ -301,16 +355,17 @@ pub const Solver = struct {
 
                     const key = note_on.@"1".key;
 
-                    if (solver.bestHandForTheJob(key, event.delta_time)) |best_stuff| {
+                    var future_buf: [FUTURE_WINDOW]FutureNote = undefined;
+                    const horizon = @as(usize, solver.ticks_per_quarter) * 2;
+                    const future = solver.futureDemand(horizon, &future_buf);
+
+                    if (solver.bestHandForTheJob(key, event.delta_time, future)) |best_stuff| {
                         const hand = best_stuff.hand;
                         const pos = best_stuff.new_pos;
 
                         const hand_info = solver.getHand(hand);
-                        var time_to_move: usize = 0;
 
-                        if (!hand_info.covers(pos)) {
-                            time_to_move = hand_info.timeToGetThere(pos, solver.ticks_per_key);
-
+                        if (hand_info.index != pos) {
                             if (solver.moveTo(hand, pos)) |instr| {
                                 var in = instr;
 
@@ -378,16 +433,20 @@ pub const Solver = struct {
 
     /// Creates an instruction for moving to a location, THE TIMESTAMP WILL BE THE DURATION,
     /// THIS MUST BE SUBTRACTED FROM THE FUTURE INSTRUCTION TIMESTAMP TO GET THE REAL DEAL
-    fn moveTo(solver: *Solver, hand: Hand, to: usize) ?Instruction {
+    ///
+    /// `to_index` is an already-chosen target hand index (e.g. from
+    /// bestPositionForTheFuture/bestHandForTheJob), not a key to re-derive
+    /// a position from.
+    fn moveTo(solver: *Solver, hand: Hand, to_index: usize) ?Instruction {
         const hand_info = solver.getHand(hand);
-        if (hand_info.covers(to)) {
+        if (hand_info.index == to_index) {
             return null;
         }
 
-        const dir: Direction = if (hand_info.index > to) .left else .right;
-        const time = hand_info.timeToGetThere(to, solver.ticks_per_key);
+        const dir: Direction = if (hand_info.index > to_index) .left else .right;
+        const time = hand_info.timeToGetThereIndex(to_index, solver.ticks_per_key);
 
-        hand_info.moveTo(to);
+        hand_info.moveToIndex(to_index);
 
         return .{
             .timestamp = time,
@@ -401,38 +460,85 @@ pub const Solver = struct {
         };
     }
 
+    fn compareEvents(_: void, lhs: Midi.TrackChunk.MTrkEvent, rhs: Midi.TrackChunk.MTrkEvent) bool {
+        return lhs.timestamp < rhs.timestamp;
+    }
+
+    pub fn shortenNotes(solver: *Solver) void {
+        const sixteenth_note = solver.ticks_per_quarter / 4;
+
+        var timestamp: u32 = 0;
+
+        for (solver.instructions) |*event| {
+            event.timestamp = timestamp + event.delta_time;
+            timestamp += event.delta_time;
+        }
+
+        for (solver.instructions, 0..) |*event, i| {
+            if (event.event == .midi) {
+                switch (event.event.midi) {
+                    .note_off => {
+                        // Go back until we see when this note was turned on, then make this timestamp that plug 1/16 of a note
+                        var found = false;
+                        var idx = i;
+
+                        const key = event.event.midi.note_off.@"1".key;
+
+                        while (!found) {
+                            idx -= 1;
+
+                            const prev_event = solver.instructions[idx];
+                            if (prev_event.event == .midi and
+                                prev_event.event.midi == .note_on and
+                                prev_event.event.midi.note_on.@"1".key == key)
+                            {
+                                found = true;
+                                event.timestamp = prev_event.timestamp + sixteenth_note;
+                            }
+                        }
+                    },
+
+                    else => {},
+                }
+            }
+        }
+
+        std.mem.sort(Midi.TrackChunk.MTrkEvent, solver.instructions, {}, compareEvents);
+
+        for (solver.instructions, 0..) |*event, i| {
+            if (i == 0) {
+                event.delta_time = event.timestamp;
+            } else {
+                event.delta_time = event.timestamp - solver.instructions[i - 1].timestamp;
+            }
+        }
+    }
+
     pub fn solve(solver: *Solver, alloc: Allocator, program: *MaestroProgram) !void {
         var timestamp: u32 = 0;
 
         solver.ticks_per_key = ticksPerKeyMove(solver.ticks_per_quarter, solver.us_per_quarter);
 
-        const sixteenth_note = solver.ticks_per_quarter / 4;
-
         // Preprocessing
-        for (solver.instructions, 0..) |*event, i| {
+
+        solver.shortenNotes();
+
+        for (solver.instructions) |*event| {
             if (event.event == .midi) {
                 switch (event.event.midi) {
-                    .note_on => {
-                        event.event.midi.note_on.@"1".key -= KEY_OFFSET;
-                    },
-                    .note_off => {
-                        event.event.midi.note_off.@"1".key -= KEY_OFFSET;
-
-                        // Force all notes to be a sixteenth note
-                        if (event.delta_time > sixteenth_note) {
-                            if (i < solver.instructions.len - 1) {
-                                solver.instructions[i + 1].delta_time += (event.delta_time - sixteenth_note);
-                            }
-
-                            event.delta_time = sixteenth_note;
-                        }
-                    },
+                    .note_on => event.event.midi.note_on.@"1".key -= KEY_OFFSET,
+                    .note_off => event.event.midi.note_off.@"1".key -= KEY_OFFSET,
                 }
             }
         }
 
         const first_key = solver.startAt();
-        const hand_for_it = solver.bestHandForTheJob(first_key, std.math.maxInt(usize));
+
+        var initial_future_buf: [FUTURE_WINDOW]FutureNote = undefined;
+        const initial_horizon = @as(usize, solver.ticks_per_quarter) * 2;
+        const initial_future = solver.futureDemand(initial_horizon, &initial_future_buf);
+
+        const hand_for_it = solver.bestHandForTheJob(first_key, std.math.maxInt(usize), initial_future);
 
         var time_to_make_first_move: usize = 0;
 
