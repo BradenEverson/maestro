@@ -63,13 +63,13 @@ pub fn init(
         try idf.gpio.Level.set(note, 0);
     }
 
-    var stepper = try Stepper.init(
+    const stepper = try Stepper.init(
         step,
         dir,
         endstop,
     );
 
-    try stepper.home(.left);
+    // try stepper.home(.left);
 
     return .{
         .note_gpios = notes,
@@ -93,7 +93,7 @@ pub fn depressNote(self: *Hand, note: usize) !void {
 }
 
 const stepsToOctave: usize = 430;
-const stepsToLevel: usize = 135;
+const stepsToLevel: usize = 122;
 
 pub fn moveNote(
     self: *Hand,

@@ -88,11 +88,40 @@ export fn app_main() callconv(.c) void {
         return;
     };
 
+    idf.rtos.Task.delayMs(1500);
+
     // Clear solved instructions and such if we need to test specific movements!
     //
-    // program.instructions.clearAndFree(alloc);
-    //
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 500, .cmd = .{ .move_hand = .{ .hand = .left, .white_keys = 1, .direction = .right } } }) catch unreachable;
+
+    program.instructions.clearAndFree(alloc);
+
+    program.instructions.append(alloc, .{ .timestamp = 0, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
+    program.instructions.append(alloc, .{ .timestamp = 100, .delay = 100, .cmd = .{ .note_off = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
+
+    program.instructions.append(alloc, .{ .timestamp = 500, .delay = 400, .cmd = .{ .move_hand = .{ .hand = .left, .white_keys = 1, .direction = .right } } }) catch unreachable;
+
+    program.instructions.append(alloc, .{ .timestamp = 600, .delay = 100, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
+    program.instructions.append(alloc, .{ .timestamp = 700, .delay = 100, .cmd = .{ .note_off = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
+
+    program.instructions.append(alloc, .{ .timestamp = 1500, .delay = 1000, .cmd = .{ .move_hand = .{ .hand = .left, .white_keys = 1, .direction = .right } } }) catch unreachable;
+
+    program.instructions.append(alloc, .{ .timestamp = 1600, .delay = 100, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
+    program.instructions.append(alloc, .{ .timestamp = 1700, .delay = 100, .cmd = .{ .note_off = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
+
+    program.instructions.append(alloc, .{ .timestamp = 2500, .delay = 1000, .cmd = .{ .move_hand = .{ .hand = .left, .white_keys = 2, .direction = .right } } }) catch unreachable;
+
+    program.instructions.append(alloc, .{ .timestamp = 2600, .delay = 100, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
+    program.instructions.append(alloc, .{ .timestamp = 2700, .delay = 100, .cmd = .{ .note_off = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
+
+    program.instructions.append(alloc, .{ .timestamp = 3500, .delay = 1000, .cmd = .{ .move_hand = .{ .hand = .left, .white_keys = 3, .direction = .right } } }) catch unreachable;
+
+    program.instructions.append(alloc, .{ .timestamp = 3600, .delay = 100, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
+    program.instructions.append(alloc, .{ .timestamp = 3700, .delay = 100, .cmd = .{ .note_off = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
+
+    program.instructions.append(alloc, .{ .timestamp = 13500, .delay = 10000, .cmd = .{ .move_hand = .{ .hand = .left, .white_keys = 14, .direction = .right } } }) catch unreachable;
+
+    program.instructions.append(alloc, .{ .timestamp = 13600, .delay = 100, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
+    program.instructions.append(alloc, .{ .timestamp = 13700, .delay = 100, .cmd = .{ .note_off = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
     // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 5000, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 0 } } }) catch unreachable;
     // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 1 } } }) catch unreachable;
     // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 2 } } }) catch unreachable;
@@ -214,7 +243,7 @@ export fn app_main() callconv(.c) void {
 
     // log.info("DONE", .{});
 
-    hand.stepper.goHome() catch unreachable;
+    // hand.stepper.goHome() catch unreachable;
 
     while (true) {
         idf.rtos.Task.delayMs(100);
