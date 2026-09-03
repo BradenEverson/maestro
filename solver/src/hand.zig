@@ -47,6 +47,42 @@ pub const Hand = enum {
     right,
 };
 
+pub fn coversAt(index: usize, global_key: usize) bool {
+    const in_range = (global_key >= index) and (global_key < index + OCTAVE_SIZE);
+
+    if (!in_range) return false;
+
+    const local = global_key - index;
+
+    if (isBlackKey(global_key)) {
+        return isBlackKey(local) and (index % OCTAVE_SIZE == 0);
+    }
+
+    return !isBlackKey(local);
+}
+
+pub fn candidateIndices(key: usize, buf: *[OCTAVE_SIZE]usize) []usize {
+    if (isBlackKey(key)) {
+        buf[0] = (key / OCTAVE_SIZE) * OCTAVE_SIZE;
+        return buf[0..1];
+    }
+
+    var n: usize = 0;
+    buf[n] = key;
+    n += 1;
+
+    const lo: usize = key -| (OCTAVE_SIZE - 1);
+    var try_idx = lo;
+    while (try_idx < key) : (try_idx += 1) {
+        if (slotTypeMatches(try_idx, key)) {
+            buf[n] = try_idx;
+            n += 1;
+        }
+    }
+
+    return buf[0..n];
+}
+
 pub const HandInfo = struct {
     index: usize,
     pressing: [OCTAVE_SIZE]bool = @splat(false),
@@ -108,9 +144,18 @@ pub const HandInfo = struct {
         return whiteKeyDistance(hand.index, target) * ticks_per_key;
     }
 
+    pub fn timeToGetThereIndex(hand: *const HandInfo, index: usize, ticks_per_key: usize) usize {
+        if (hand.index == index) return 0;
+        return whiteKeyDistance(hand.index, index) * ticks_per_key;
+    }
+
     pub fn moveTo(hand: *HandInfo, go_to: usize) void {
         if (hand.covers(go_to)) return;
         hand.index = hand.nearestValidIndex(go_to);
+    }
+
+    pub fn moveToIndex(hand: *HandInfo, index: usize) void {
+        hand.index = index;
     }
 
     pub fn getKey(hand: *HandInfo, key: usize) *bool {
