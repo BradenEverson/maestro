@@ -15,7 +15,7 @@ pub const packet = @import("packet.zig");
 
 /// How many keys back we are when translating
 /// from sequencer to keyboard
-const KEY_OFFSET: usize = 24;
+const KEY_OFFSET: usize = 0;
 
 const FUTURE_WINDOW: usize = 32;
 
@@ -460,8 +460,20 @@ pub const Solver = struct {
         };
     }
 
-    fn compareEvents(_: void, lhs: Midi.TrackChunk.MTrkEvent, rhs: Midi.TrackChunk.MTrkEvent) bool {
-        return lhs.timestamp < rhs.timestamp;
+    fn selectionSort(items: []Midi.TrackChunk.MTrkEvent) void {
+        for (0..items.len) |i| {
+            var min = i;
+
+            for (i..items.len) |j| {
+                if (items[j].timestamp < items[min].timestamp) {
+                    min = j;
+                }
+            }
+
+            const tmp = items[i];
+            items[i] = items[min];
+            items[min] = tmp;
+        }
     }
 
     pub fn shortenNotes(solver: *Solver) void {
@@ -503,7 +515,7 @@ pub const Solver = struct {
             }
         }
 
-        std.mem.sort(Midi.TrackChunk.MTrkEvent, solver.instructions, {}, compareEvents);
+        selectionSort(solver.instructions);
 
         for (solver.instructions, 0..) |*event, i| {
             if (i == 0) {

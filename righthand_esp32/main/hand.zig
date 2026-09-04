@@ -69,7 +69,7 @@ pub fn init(
         endstop,
     );
 
-    try stepper.home(.left);
+    try stepper.home(.right);
 
     return .{
         .note_gpios = notes,
