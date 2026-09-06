@@ -15,7 +15,7 @@ pub const packet = @import("packet.zig");
 
 /// How many keys back we are when translating
 /// from sequencer to keyboard
-const KEY_OFFSET: usize = 0;
+const KEY_OFFSET: usize = 36;
 
 const FUTURE_WINDOW: usize = 32;
 

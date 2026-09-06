@@ -93,7 +93,7 @@ export fn app_main() callconv(.c) void {
 
     var buf: [1]u8 = undefined;
     while (true) {
-        const n = idf.uart.readBytes(UART_PORT, &buf, 100) catch unreachable;
+        const n = idf.uart.readBytes(UART_PORT, &buf, 1) catch unreachable;
         if (n > 0) {
             for (0..n) |i| {
                 if (parser.feedByte(buf[i])) |msg| {

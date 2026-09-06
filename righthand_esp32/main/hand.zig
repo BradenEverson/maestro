@@ -63,13 +63,13 @@ pub fn init(
         try idf.gpio.Level.set(note, 0);
     }
 
-    var stepper = try Stepper.init(
+    const stepper = try Stepper.init(
         step,
         dir,
         endstop,
     );
 
-    try stepper.home(.right);
+    // try stepper.home(.right);
 
     return .{
         .note_gpios = notes,
