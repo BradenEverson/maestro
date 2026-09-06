@@ -10,7 +10,7 @@
     .dependencies = .{
         .solver = .{
             .url = "../solver",
-            .hash = "solver-0.0.0-bA3jKJRwAAAsa3mPzDO6lp0B_lmrv7tLCkBm2Md_4tC3",
+            .hash = "solver-0.0.0-bA3jKAaEAABTeUjsTO1yjLuvxrXpnqdb-EGL_UWIecqE",
         },
         .midi = .{
             .url = "../midi",

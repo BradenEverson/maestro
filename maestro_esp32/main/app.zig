@@ -11,9 +11,10 @@ const maestro_solver = @import("solver");
 const Solver = maestro_solver.Solver;
 const MaestroProgram = maestro_solver.MaestroProgram;
 
-const test_midi = @embedFile("two_hand_test.mid");
+const test_midi = @embedFile("runaway.mid");
 
 const log = std.log.scoped(.maestro);
+extern fn esp_rom_delay_us(us: u32) void;
 
 const UART_PORT: c_uint = 1; // UART1
 const BAUD_RATE = 115200;
@@ -215,6 +216,16 @@ export fn app_main() callconv(.c) void {
 
             _ = idf.uart.writeBytes(UART_PORT, send) catch {
                 log.err("Failed to write", .{});
+
+                // switch (packet) {
+                //     .move => |move| {
+                //         for (0..move.white_keys) |_| {
+                //             esp_rom_delay_us(500);
+                //             esp_rom_delay_us(500);
+                //         }
+                //     },
+                //     else => {},
+                // }
             };
         } else {
             switch (instr.cmd) {

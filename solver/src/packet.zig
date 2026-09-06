@@ -69,15 +69,19 @@ pub const MessageParser = struct {
             },
 
             .read_opcode => {
-                const op: RightHandOp = @enumFromInt(byte);
-                mp.op = op;
+                if (byte >= 0 and byte <= 2) {
+                    const op: RightHandOp = @enumFromInt(byte);
+                    mp.op = op;
 
-                mp.state = .read_payload;
-                mp.payload_ptr = 0;
+                    mp.state = .read_payload;
+                    mp.payload_ptr = 0;
 
-                switch (op) {
-                    .move => mp.payload_len = 2,
-                    .press, .depress => mp.payload_len = 1,
+                    switch (op) {
+                        .move => mp.payload_len = 2,
+                        .press, .depress => mp.payload_len = 1,
+                    }
+                } else {
+                    mp.state = .waiting_for_magic_number;
                 }
             },
 

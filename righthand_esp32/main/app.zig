@@ -91,24 +91,25 @@ export fn app_main() callconv(.c) void {
 
     log.info("UART ready", .{});
 
-    var buf: [1]u8 = undefined;
+    var buf: [64]u8 = undefined;
     while (true) {
-        const n = idf.uart.readBytes(UART_PORT, &buf, 1) catch unreachable;
+        const n = idf.uart.readBytes(UART_PORT, &buf, 0) catch unreachable;
         if (n > 0) {
             for (0..n) |i| {
+                // log.info("Byte received: {any}", .{buf[i]});
                 if (parser.feedByte(buf[i])) |msg| {
                     log.info("Message received: {any}", .{msg});
                     switch (msg) {
                         .press => |press| {
                             hand.pressNote(@as(usize, press)) catch {
-                                // log.err("press Failed!!!", .{});
+                                log.err("press Failed!!!", .{});
                                 unreachable;
                             };
                         },
 
                         .depress => |depress| {
                             hand.depressNote(@as(usize, depress)) catch {
-                                // log.err("depress Failed!!!", .{});
+                                log.err("depress Failed!!!", .{});
                                 unreachable;
                             };
                         },
@@ -116,7 +117,7 @@ export fn app_main() callconv(.c) void {
                         .move => |move| {
                             for (0..move.white_keys) |_| {
                                 hand.moveNote(move.dir) catch {
-                                    // log.err("Move Failed!!!", .{});
+                                    log.err("Move Failed!!!", .{});
                                     unreachable;
                                 };
                             }

@@ -68,11 +68,11 @@ pub fn step(stepper: *Self) !void {
     try idf.gpio.Level.set(stepper.step_pin, 0);
     esp_rom_delay_us(500);
 
-    if (stepper.direction == .right) {
-        stepper.relative_position -= 1;
-    } else {
-        stepper.relative_position += 1;
-    }
+    // if (stepper.direction == .right) {
+    //     stepper.relative_position -= 1;
+    // } else {
+    //     stepper.relative_position += 1;
+    // }
 }
 
 pub fn goHome(stepper: *Self) !void {
