@@ -217,15 +217,14 @@ export fn app_main() callconv(.c) void {
             _ = idf.uart.writeBytes(UART_PORT, send) catch {
                 log.err("Failed to write", .{});
 
-                // switch (packet) {
-                //     .move => |move| {
-                //         for (0..move.white_keys) |_| {
-                //             esp_rom_delay_us(500);
-                //             esp_rom_delay_us(500);
-                //         }
-                //     },
-                //     else => {},
-                // }
+                switch (packet) {
+                    .move => |move| {
+                        for (0..move.white_keys) |_| {
+                            esp_rom_delay_us(1000);
+                        }
+                    },
+                    else => {},
+                }
             };
         } else {
             switch (instr.cmd) {
