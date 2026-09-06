@@ -15,7 +15,7 @@ pub const packet = @import("packet.zig");
 
 /// How many keys back we are when translating
 /// from sequencer to keyboard
-const KEY_OFFSET: usize = 24;
+const KEY_OFFSET: usize = 36;
 
 const FUTURE_WINDOW: usize = 32;
 
@@ -368,8 +368,7 @@ pub const Solver = struct {
                         if (hand_info.index != pos) {
                             if (solver.moveTo(hand, pos)) |instr| {
                                 var in = instr;
-
-                                in.timestamp = event.timestamp - instr.timestamp;
+                                in.timestamp = event.timestamp - event.delta_time;
                                 try program.instructions.append(alloc, in);
                             }
                         }
