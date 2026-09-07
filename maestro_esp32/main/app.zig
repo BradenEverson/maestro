@@ -11,7 +11,7 @@ const maestro_solver = @import("solver");
 const Solver = maestro_solver.Solver;
 const MaestroProgram = maestro_solver.MaestroProgram;
 
-const test_midi = @embedFile("runaway.mid");
+const test_midi = @embedFile("7 Years - Lukas Graham - Pianoitall.mid.mid");
 
 const log = std.log.scoped(.maestro);
 extern fn esp_rom_delay_us(us: u32) void;
