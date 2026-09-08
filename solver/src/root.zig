@@ -112,7 +112,7 @@ pub const MaestroCommand = union(enum) {
 
 pub const Solver = struct {
     left: HandInfo = .{ .index = 0 },
-    right: HandInfo = .{ .index = PIANO_LEN - the_hand.OCTAVE_SIZE },
+    right: HandInfo = .{ .index = PIANO_LEN - the_hand.OCTAVE_SIZE - 1 },
 
     instructions: []Midi.TrackChunk.MTrkEvent,
     instruction_pointer: usize = 0,
