@@ -125,13 +125,13 @@ export fn app_main() callconv(.c) void {
                                     unreachable;
                                 };
                             }
+
+                            _ = idf.uart.writeBytes(UART_PORT, &ack) catch {
+                                log.err("Write failed!!!", .{});
+                                unreachable;
+                            };
                         },
                     }
-
-                    _ = idf.uart.writeBytes(UART_PORT, &ack) catch {
-                        log.err("Write failed!!!", .{});
-                        unreachable;
-                    };
                 }
             }
         } else {

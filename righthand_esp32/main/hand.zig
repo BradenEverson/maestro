@@ -93,7 +93,7 @@ pub fn depressNote(self: *Hand, note: usize) !void {
 }
 
 const stepsToOctave: usize = 430;
-const stepsToLevel: usize = 135;
+const stepsToLevel: usize = 122;
 
 pub fn moveNote(
     self: *Hand,

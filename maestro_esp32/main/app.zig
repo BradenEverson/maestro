@@ -219,18 +219,14 @@ export fn app_main() callconv(.c) void {
                 log.err("Failed to write", .{});
             };
 
-            // switch (packet) {
-            //     .move => |move| {
-            //         for (0..move.white_keys) |_| {
-            //             esp_rom_delay_us(1000);
-            //         }
-            //     },
-            //     else => {},
-            // }
-
-            _ = idf.uart.readBytes(UART_PORT, &buf, idf.rtos.portMAX_DELAY) catch {
-                log.err("Failed to read", .{});
-            };
+            switch (packet) {
+                .move => {
+                    _ = idf.uart.readBytes(UART_PORT, &buf, idf.rtos.portMAX_DELAY) catch {
+                        log.err("Failed to read", .{});
+                    };
+                },
+                else => {},
+            }
         } else {
             switch (instr.cmd) {
                 .note_on => |note_on| {

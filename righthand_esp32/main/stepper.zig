@@ -63,10 +63,10 @@ pub fn home(stepper: *Self, home_direction: Direction) !void {
 
 pub fn step(stepper: *Self) !void {
     try idf.gpio.Level.set(stepper.step_pin, 1);
-    esp_rom_delay_us(500);
+    esp_rom_delay_us(300);
 
     try idf.gpio.Level.set(stepper.step_pin, 0);
-    esp_rom_delay_us(500);
+    esp_rom_delay_us(300);
 
     // if (stepper.direction == .right) {
     //     stepper.relative_position -= 1;
