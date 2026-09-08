@@ -6,7 +6,7 @@ pub const OCTAVE_SIZE: usize = 12;
 
 /// time in ms it takes to move a single key
 // pub const TIME_TO_MOVE_KEY: usize = 122;
-pub const TIME_TO_MOVE_KEY: usize = 30;
+pub const TIME_TO_MOVE_KEY: usize = 75;
 
 fn isBlackKey(key: usize) bool {
     const octave_idx = key % OCTAVE_SIZE;

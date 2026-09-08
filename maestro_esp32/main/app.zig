@@ -94,14 +94,13 @@ export fn app_main() callconv(.c) void {
     idf.rtos.Task.delayMs(1500);
 
     // Clear solved instructions and such if we need to test specific movements!
-    //
-    //
+
     // program.instructions.clearAndFree(alloc);
     //
     // program.instructions.append(alloc, .{ .timestamp = 0, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
     // program.instructions.append(alloc, .{ .timestamp = 100, .delay = 100, .cmd = .{ .note_off = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
     //
-    // program.instructions.append(alloc, .{ .timestamp = 500, .delay = 400, .cmd = .{ .move_hand = .{ .hand = .left, .white_keys = 1, .direction = .left } } }) catch unreachable;
+    // program.instructions.append(alloc, .{ .timestamp = 2000, .delay = 2000, .cmd = .{ .move_hand = .{ .hand = .left, .white_keys = 2450, .direction = .right } } }) catch unreachable;
     //
     // program.instructions.append(alloc, .{ .timestamp = 600, .delay = 100, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
     // program.instructions.append(alloc, .{ .timestamp = 700, .delay = 100, .cmd = .{ .note_off = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
@@ -255,7 +254,7 @@ export fn app_main() callconv(.c) void {
 
     log.info("DONE", .{});
 
-    hand.stepper.goHome() catch unreachable;
+    // hand.stepper.goHome() catch unreachable;
 
     while (true) {
         idf.rtos.Task.delayMs(100);
