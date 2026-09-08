@@ -36,10 +36,6 @@
             .url = "../midi",
             .hash = "midi-0.0.0-L3Zubk5hAAC4pwsOOdpwcNmfro4eSuFmWZCHyFU7N6g0",
         },
-        .solver = .{
-            .url = "../solver",
-            .hash = "solver-0.0.0-bA3jKDKEAABkctVmP1lmiQo_oigHI-rk0d38tvQP0SFJ",
-        },
     },
     .paths = .{
         "build.zig",
