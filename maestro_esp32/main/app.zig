@@ -11,7 +11,7 @@ const maestro_solver = @import("solver");
 const Solver = maestro_solver.Solver;
 const MaestroProgram = maestro_solver.MaestroProgram;
 
-const test_midi = @embedFile("7 Years - Lukas Graham - Pianoitall.mid.mid");
+const test_midi = @embedFile("runaway.mid");
 
 const log = std.log.scoped(.maestro);
 extern fn esp_rom_delay_us(us: u32) void;
@@ -43,6 +43,7 @@ const MAX_BUFFER_SIZE: usize = 256;
 
 export fn app_main() callconv(.c) void {
     var packet_buffer: [MAX_BUFFER_SIZE]u8 = undefined;
+    var buf: [1]u8 = undefined;
 
     var heap: idf.heap.VPortAllocator = .init();
     const alloc = heap.allocator();
@@ -216,15 +217,19 @@ export fn app_main() callconv(.c) void {
 
             _ = idf.uart.writeBytes(UART_PORT, send) catch {
                 log.err("Failed to write", .{});
+            };
 
-                switch (packet) {
-                    .move => |move| {
-                        for (0..move.white_keys) |_| {
-                            esp_rom_delay_us(1000);
-                        }
-                    },
-                    else => {},
-                }
+            // switch (packet) {
+            //     .move => |move| {
+            //         for (0..move.white_keys) |_| {
+            //             esp_rom_delay_us(1000);
+            //         }
+            //     },
+            //     else => {},
+            // }
+
+            _ = idf.uart.readBytes(UART_PORT, &buf, idf.rtos.portMAX_DELAY) catch {
+                log.err("Failed to read", .{});
             };
         } else {
             switch (instr.cmd) {

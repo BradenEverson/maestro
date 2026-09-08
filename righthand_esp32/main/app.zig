@@ -92,6 +92,10 @@ export fn app_main() callconv(.c) void {
     log.info("UART ready", .{});
 
     var buf: [64]u8 = undefined;
+
+    var ack: [1]u8 = undefined;
+    ack[0] = 0x72;
+
     while (true) {
         const n = idf.uart.readBytes(UART_PORT, &buf, 0) catch unreachable;
         if (n > 0) {
@@ -123,6 +127,11 @@ export fn app_main() callconv(.c) void {
                             }
                         },
                     }
+
+                    _ = idf.uart.writeBytes(UART_PORT, &ack) catch {
+                        log.err("Write failed!!!", .{});
+                        unreachable;
+                    };
                 }
             }
         } else {
