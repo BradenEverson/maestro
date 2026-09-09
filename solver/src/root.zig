@@ -17,7 +17,7 @@ pub const packet = @import("packet.zig");
 /// from sequencer to keyboard
 const KEY_OFFSET: usize = 36;
 
-const FUTURE_WINDOW: usize = 3;
+const FUTURE_WINDOW: usize = 2;
 
 const FutureNote = struct { key: usize, time_from_now: usize };
 
