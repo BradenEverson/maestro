@@ -11,6 +11,12 @@ The solver has *some* intelligence to it in that it will try to look a couple no
 The left hand solves the entire song, then works on instructions at certain timestamps. Instructions for the right hand are sent over a UART connection.
 
 ## Demos 
+
+https://github.com/user-attachments/assets/6ee0a4c3-5925-4142-81c9-4707cb508cc3
+
+v2 prototype playing a bit of Runaway
+
+
 https://github.com/user-attachments/assets/58f6e1ac-3eb3-450a-81f4-9b57bdd086b1
 
 Early proof of concept on solonoids
