@@ -20,8 +20,8 @@ const UART_PORT: c_uint = 1; // UART1
 const BAUD_RATE = 115200;
 const BUF_SIZE = 256;
 
-const TX_PIN: c_int = 38;
-const RX_PIN: c_int = 39;
+const TX_PIN: c_int = 43;
+const RX_PIN: c_int = 44;
 
 pub fn setPin(port: c_uint, pins: struct {
     tx: c_int = sys.UART_PIN_NO_CHANGE,
