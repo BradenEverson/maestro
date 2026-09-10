@@ -139,10 +139,14 @@ pub const HandInfo = struct {
         return best_idx;
     }
 
-    pub fn timeToGetThere(hand: *const HandInfo, go_to: usize, ticks_per_key: usize) usize {
+    pub fn distance(hand: *const HandInfo, go_to: usize) usize {
         if (hand.covers(go_to)) return 0;
         const target = hand.nearestValidIndex(go_to);
-        return whiteKeyDistance(hand.index, target) * ticks_per_key;
+        return whiteKeyDistance(hand.index, target);
+    }
+
+    pub fn timeToGetThere(hand: *const HandInfo, go_to: usize, ticks_per_key: usize) usize {
+        return hand.distance(go_to) * ticks_per_key;
     }
 
     pub fn timeToGetThereIndex(hand: *const HandInfo, index: usize, ticks_per_key: usize) usize {

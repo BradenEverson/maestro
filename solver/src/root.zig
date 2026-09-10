@@ -21,13 +21,16 @@ const FUTURE_WINDOW: usize = 2;
 
 const FutureNote = struct { key: usize, time_from_now: usize };
 
-const PositionCandidate = struct { position: usize, future_coverage: usize, time_to_get_there: usize };
+const PositionCandidate = struct { position: usize, future_coverage: isize, time_to_get_there: usize };
 
-fn coverageScore(index: usize, future: []const FutureNote) usize {
-    var score: usize = 0;
+fn coverageScore(index: usize, future: []const FutureNote) isize {
+    var score: isize = 0;
     for (future) |f| {
         if (the_hand.coversAt(index, f.key)) score += 1;
+    } else {
+        score -= 1;
     }
+
     return score;
 }
 
@@ -213,12 +216,12 @@ pub const Solver = struct {
 
         const pos = solver.bestPositionForTheFuture(hand, gotta_go_to, time_to_do_it, future) orelse return null;
 
-        const stranded: usize = if (pos.time_to_get_there == 0)
+        const stranded: isize = if (pos.time_to_get_there == 0)
             0
         else
             coverageScore(solver.getHandConst(hand).index, future);
 
-        const net_value: isize = @as(isize, @intCast(pos.future_coverage)) - @as(isize, @intCast(stranded));
+        const net_value: isize = @as(isize, @intCast(pos.future_coverage)) - stranded;
 
         return .{ .hand = hand, .new_pos = pos.position, .move_cost = pos.time_to_get_there, .net_value = net_value };
     }
