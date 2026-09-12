@@ -15,9 +15,9 @@ pub const packet = @import("packet.zig");
 
 /// How many keys back we are when translating
 /// from sequencer to keyboard
-const KEY_OFFSET: usize = 36;
+const KEY_OFFSET: usize = 24;
 
-const FUTURE_WINDOW: usize = 2;
+const FUTURE_WINDOW: usize = 12;
 
 const FutureNote = struct { key: usize, time_from_now: usize };
 
