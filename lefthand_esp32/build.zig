@@ -20,6 +20,20 @@ pub fn build(b: *std.Build) !void {
     });
     obj.root_module.addImport("esp_idf", idf_wrapped_modules(b));
 
+    const midi = b.dependency("midi", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
+    obj.root_module.addImport("midi", midi.module("midi"));
+
+    const solver = b.dependency("solver", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
+    obj.root_module.addImport("solver", solver.module("solver"));
+
     const obj_install = b.addInstallArtifact(obj, .{
         .dest_dir = .{
             .override = .{
