@@ -17,12 +17,24 @@ const log = std.log.scoped(.maestro);
 extern fn esp_rom_delay_us(us: u32) void;
 
 const index_html = @embedFile("html/index.html");
+const playing_html = @embedFile("html/playing.html");
 
 export fn handleRoot(req: [*c]sys.httpd_req_t) callconv(.c) sys.esp_err_t {
     idf.http.Server.Response.sendStr(req, index_html) catch |err| {
         log.err("sendStr: {s}", .{@errorName(err)});
         return sys.ESP_FAIL;
     };
+    return sys.ESP_OK;
+}
+
+export fn handlePlay(req: [*c]sys.httpd_req_t) callconv(.c) sys.esp_err_t {
+    idf.http.Server.Response.sendStr(req, playing_html) catch |err| {
+        log.err("sendStr: {s}", .{@errorName(err)});
+        return sys.ESP_FAIL;
+    };
+
+    playSong();
+
     return sys.ESP_OK;
 }
 
@@ -120,120 +132,10 @@ fn doAllTheServerStartingStuff() void {
     };
 }
 
+var hand: Hand = undefined;
+
 export fn app_main() callconv(.c) void {
-    doAllTheServerStartingStuff();
-
-    var packet_buffer: [MAX_BUFFER_SIZE]u8 = undefined;
-    var buf: [1]u8 = undefined;
-
-    var heap: idf.heap.VPortAllocator = .init();
-    const alloc = heap.allocator();
-
-    idf.uart.driverInstall(UART_PORT, .{
-        .rx_buffer_size = BUF_SIZE * 2,
-        .tx_buffer_size = 0,
-    }) catch unreachable;
-
-    idf.uart.setBaudrate(UART_PORT, BAUD_RATE) catch unreachable;
-    idf.uart.setWordLength(UART_PORT, idf.sys.UART_DATA_8_BITS) catch unreachable;
-    idf.uart.setParity(UART_PORT, idf.sys.UART_PARITY_DISABLE) catch unreachable;
-    idf.uart.setStopBits(UART_PORT, idf.sys.UART_STOP_BITS_1) catch unreachable;
-
-    setPin(UART_PORT, .{
-        .tx = TX_PIN,
-        .rx = RX_PIN,
-    }) catch unreachable;
-
-    var midi = MIDI.fromBytes(alloc, test_midi) catch {
-        // log.err("MIDI Parse Failed {s}", .{@errorName(err)});
-        return;
-    };
-    defer midi.deinit(alloc);
-
-    log.info("Parse Complete!", .{});
-    log.info("Solving MIDI!", .{});
-
-    const tempo = maestro_solver.getTempo(midi.tracks[0].mtrk_events.items);
-
-    var solver: Solver = .{
-        .instructions = midi.tracks[0].mtrk_events.items,
-        .ticks_per_quarter = midi.header.division.metrical, // only support metrical rn :)
-
-        .us_per_quarter = tempo.?,
-    };
-
-    var program: MaestroProgram = .{};
-
-    defer program.deinit(alloc);
-
-    solver.solve(alloc, &program) catch {
-        // log.err("Solve Failed {s}", .{@errorName(err)});
-        return;
-    };
-    log.info("Solve Complete!", .{});
-
-    idf.rtos.Task.delayMs(1500);
-
-    // Clear solved instructions and such if we need to test specific movements!
-
-    // program.instructions.clearAndFree(alloc);
-    //
-    // program.instructions.append(alloc, .{ .timestamp = 0, .delay = 0, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 100, .delay = 100, .cmd = .{ .note_off = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
-    //
-    // program.instructions.append(alloc, .{ .timestamp = 2000, .delay = 2000, .cmd = .{ .move_hand = .{ .hand = .left, .white_keys = 2450, .direction = .right } } }) catch unreachable;
-    //
-    // program.instructions.append(alloc, .{ .timestamp = 600, .delay = 100, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 700, .delay = 100, .cmd = .{ .note_off = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
-    //
-    // program.instructions.append(alloc, .{ .timestamp = 1500, .delay = 1000, .cmd = .{ .move_hand = .{ .hand = .left, .white_keys = 1, .direction = .left } } }) catch unreachable;
-    //
-    // program.instructions.append(alloc, .{ .timestamp = 1600, .delay = 100, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 1700, .delay = 100, .cmd = .{ .note_off = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
-    //
-    // program.instructions.append(alloc, .{ .timestamp = 2500, .delay = 1000, .cmd = .{ .move_hand = .{ .hand = .left, .white_keys = 2, .direction = .left } } }) catch unreachable;
-    //
-    // program.instructions.append(alloc, .{ .timestamp = 2600, .delay = 100, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 2700, .delay = 100, .cmd = .{ .note_off = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
-    //
-    // program.instructions.append(alloc, .{ .timestamp = 3500, .delay = 1000, .cmd = .{ .move_hand = .{ .hand = .left, .white_keys = 3, .direction = .left } } }) catch unreachable;
-    //
-    // program.instructions.append(alloc, .{ .timestamp = 3600, .delay = 100, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 3700, .delay = 100, .cmd = .{ .note_off = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
-    //
-    // program.instructions.append(alloc, .{ .timestamp = 13500, .delay = 10000, .cmd = .{ .move_hand = .{ .hand = .left, .white_keys = 14, .direction = .right } } }) catch unreachable;
-    //
-    // program.instructions.append(alloc, .{ .timestamp = 13600, .delay = 100, .cmd = .{ .note_on = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 13700, .delay = 100, .cmd = .{ .note_off = .{ .hand = .left, .relative_note = 0 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 5000, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 0 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 1 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 2 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 3 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 4 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 5 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 6 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 7 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 8 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 9 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 10 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 5000, .delay = 0, .cmd = .{ .note_on = .{ .hand = .right, .relative_note = 11 } } }) catch unreachable;
-    //
-    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 5000, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 0 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 1 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 2 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 3 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 4 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 5 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 6 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 7 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 8 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 9 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 10 } } }) catch unreachable;
-    // program.instructions.append(alloc, .{ .timestamp = 10000, .delay = 0, .cmd = .{ .note_off = .{ .hand = .right, .relative_note = 11 } } }) catch unreachable;
-
-    log.info("Solve Complete!", .{});
-
-    var hand = Hand.init(
+    hand = Hand.init(
         // Octave of solonoids
         [_]idf.gpio.Num(){
             .@"4",
@@ -259,22 +161,82 @@ export fn app_main() callconv(.c) void {
         .@"10",
 
         0,
-    ) catch {
-        // log.err("Hand Init Failed :((( {s}", .{@errorName(err)});
+    ) catch |err| {
+        log.err("Hand Init Failed :((( {s}", .{@errorName(err)});
         return;
     };
 
-    const RTOS_HZ: u32 = 1000;
+    idf.uart.driverInstall(UART_PORT, .{
+        .rx_buffer_size = BUF_SIZE * 2,
+        .tx_buffer_size = 0,
+    }) catch unreachable;
+
+    idf.uart.setBaudrate(UART_PORT, BAUD_RATE) catch unreachable;
+    idf.uart.setWordLength(UART_PORT, idf.sys.UART_DATA_8_BITS) catch unreachable;
+    idf.uart.setParity(UART_PORT, idf.sys.UART_PARITY_DISABLE) catch unreachable;
+    idf.uart.setStopBits(UART_PORT, idf.sys.UART_STOP_BITS_1) catch unreachable;
+
+    setPin(UART_PORT, .{
+        .tx = TX_PIN,
+        .rx = RX_PIN,
+    }) catch unreachable;
+
+    doAllTheServerStartingStuff();
+
+    while (true) {
+        idf.rtos.Task.delayMs(100);
+    }
+}
+
+fn playSong() void {
+    var packet_buffer: [MAX_BUFFER_SIZE]u8 = undefined;
+    var buf: [1]u8 = undefined;
+
+    var heap: idf.heap.VPortAllocator = .init();
+    const alloc = heap.allocator();
+
+    var midi = MIDI.fromBytes(alloc, test_midi) catch |err| {
+        log.err("MIDI Parse Failed {s}", .{@errorName(err)});
+        return;
+    };
+    defer midi.deinit(alloc);
+
+    log.info("Parse Complete!", .{});
+    log.info("Solving MIDI!", .{});
+
+    const tempo = maestro_solver.getTempo(midi.tracks[0].mtrk_events.items);
 
     if (midi.header.division != .metrical) {
-        // log.err("Only metrical supported for now", .{});
+        log.err("Only metrical supported for now", .{});
         return;
     }
+
+    var solver: Solver = .{
+        .instructions = midi.tracks[0].mtrk_events.items,
+        .ticks_per_quarter = midi.header.division.metrical, // only support metrical rn :)
+
+        .us_per_quarter = tempo.?,
+    };
+
+    var program: MaestroProgram = .{};
+
+    defer program.deinit(alloc);
+
+    solver.solve(alloc, &program) catch |err| {
+        log.err("Solve Failed {s}", .{@errorName(err)});
+        return;
+    };
+    log.info("Solve Complete!", .{});
+
+    idf.rtos.Task.delayMs(1500);
+
+    log.info("Solve Complete!", .{});
+
+    const RTOS_HZ: u32 = 1000;
 
     const ticks_per_qn: u32 = @intCast(midi.header.division.metrical);
 
     const tempo_us = program.tempo;
-    // log.info("Tempo: {} BPM\n", .{60_000_000 / @as(u32, tempo_us)});
 
     for (program.instructions.items) |instr| {
         const delay_ticks: u32 = @intCast(
@@ -282,7 +244,6 @@ export fn app_main() callconv(.c) void {
                 (@as(u64, ticks_per_qn) * 1_000_000),
         );
 
-        // log.info("{any} - {}", .{ instr, delay_ticks });
         if (delay_ticks > 0) {
             idf.rtos.Task.delay(delay_ticks);
         }
@@ -292,8 +253,6 @@ export fn app_main() callconv(.c) void {
 
             const packet = instr.cmd.toPacket();
             const send = packet.toBytesToSend(&packet_buffer);
-
-            // log.info("{X}", .{send});
 
             _ = idf.uart.writeBytes(UART_PORT, send) catch {
                 log.err("Failed to write", .{});
@@ -324,7 +283,7 @@ export fn app_main() callconv(.c) void {
 
                     for (0..move_info.white_keys) |_| {
                         hand.moveNote(move_info.direction) catch {
-                            // log.err("Move Failed!!!", .{});
+                            log.err("Move Failed!!!", .{});
                             unreachable;
                         };
                     }
@@ -335,11 +294,7 @@ export fn app_main() callconv(.c) void {
 
     log.info("DONE", .{});
 
-    // hand.stepper.goHome() catch unreachable;
-
-    while (true) {
-        idf.rtos.Task.delayMs(100);
-    }
+    hand.stepper.goHome() catch unreachable;
 }
 
 fn startHttpServer() !void {
@@ -354,6 +309,14 @@ fn startHttpServer() !void {
         .user_ctx = null,
     };
     try idf.http.Server.registerUri(server, &root_uri);
+
+    const play_uri = sys.httpd_uri_t{
+        .uri = "/play",
+        .method = sys.HTTP_GET,
+        .handler = &handlePlay,
+        .user_ctx = null,
+    };
+    try idf.http.Server.registerUri(server, &play_uri);
 
     log.info("HTTP server started on port 80", .{});
 }
