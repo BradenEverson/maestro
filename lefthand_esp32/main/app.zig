@@ -19,6 +19,12 @@ extern fn esp_rom_delay_us(us: u32) void;
 const index_html = @embedFile("html/index.html");
 const playing_html = @embedFile("html/playing.html");
 
+const PLAYER_STACK_SIZE: u32 = 32 * 1024;
+const PLAYER_PRIORITY: u32 = 10;
+
+// Song playing lock :)
+var g_playing = std.atomic.Value(bool).init(false);
+
 export fn handleRoot(req: [*c]sys.httpd_req_t) callconv(.c) sys.esp_err_t {
     idf.http.Server.Response.sendStr(req, index_html) catch |err| {
         log.err("sendStr: {s}", .{@errorName(err)});
@@ -28,14 +34,37 @@ export fn handleRoot(req: [*c]sys.httpd_req_t) callconv(.c) sys.esp_err_t {
 }
 
 export fn handlePlay(req: [*c]sys.httpd_req_t) callconv(.c) sys.esp_err_t {
+    if (g_playing.cmpxchgStrong(false, true, .acq_rel, .acquire) != null) {
+        log.warn("/play requested while already playing", .{});
+        return sys.ESP_OK;
+    }
+
     idf.http.Server.Response.sendStr(req, playing_html) catch |err| {
         log.err("sendStr: {s}", .{@errorName(err)});
+        g_playing.store(false, .release);
         return sys.ESP_FAIL;
     };
 
-    playSong();
+    const rc = sys.xTaskCreate(
+        &playerTask,
+        "maestro_player",
+        PLAYER_STACK_SIZE,
+        null,
+        PLAYER_PRIORITY,
+        null,
+    );
+    if (rc != sys.pdPASS) {
+        log.err("Failed to create player task (out of memory?)", .{});
+        g_playing.store(false, .release);
+    }
 
     return sys.ESP_OK;
+}
+
+fn playerTask(_: ?*anyopaque) callconv(.c) void {
+    playSong();
+    g_playing.store(false, .release);
+    sys.vTaskDelete(null);
 }
 
 var g_event_group: sys.EventGroupHandle_t = null;
@@ -202,34 +231,35 @@ fn playSong() void {
     defer midi.deinit(alloc);
 
     log.info("Parse Complete!", .{});
-    log.info("Solving MIDI!", .{});
-
-    const tempo = maestro_solver.getTempo(midi.tracks[0].mtrk_events.items);
 
     if (midi.header.division != .metrical) {
         log.err("Only metrical supported for now", .{});
         return;
     }
 
+    if (midi.tracks.len == 0) {
+        log.err("MIDI has no tracks", .{});
+        return;
+    }
+
+    log.info("Solving MIDI!", .{});
+
+    const tempo = maestro_solver.getTempo(midi.tracks[0].mtrk_events.items).?;
+
     var solver: Solver = .{
         .instructions = midi.tracks[0].mtrk_events.items,
         .ticks_per_quarter = midi.header.division.metrical, // only support metrical rn :)
 
-        .us_per_quarter = tempo.?,
+        .us_per_quarter = tempo,
     };
 
     var program: MaestroProgram = .{};
-
     defer program.deinit(alloc);
 
     solver.solve(alloc, &program) catch |err| {
         log.err("Solve Failed {s}", .{@errorName(err)});
         return;
     };
-    log.info("Solve Complete!", .{});
-
-    idf.rtos.Task.delayMs(1500);
-
     log.info("Solve Complete!", .{});
 
     const RTOS_HZ: u32 = 1000;
@@ -270,21 +300,27 @@ fn playSong() void {
             switch (instr.cmd) {
                 .note_on => |note_on| {
                     log.info("ON: {}", .{note_on.relative_note});
-                    hand.pressNote(note_on.relative_note) catch unreachable;
+                    hand.pressNote(note_on.relative_note) catch |err| {
+                        log.err("pressNote failed: {s}", .{@errorName(err)});
+                        break;
+                    };
                 },
 
                 .note_off => |note_off| {
                     log.info("OFF: {}", .{note_off.relative_note});
-                    hand.depressNote(note_off.relative_note) catch unreachable;
+                    hand.depressNote(note_off.relative_note) catch |err| {
+                        log.err("depressNote failed: {s}", .{@errorName(err)});
+                        break;
+                    };
                 },
 
                 .move_hand => |move_info| {
                     log.info("MOVING {} keys {any}", .{ move_info.white_keys, move_info.direction });
 
                     for (0..move_info.white_keys) |_| {
-                        hand.moveNote(move_info.direction) catch {
-                            log.err("Move Failed!!!", .{});
-                            unreachable;
+                        hand.moveNote(move_info.direction) catch |err| {
+                            log.err("Move Failed: {s}", .{@errorName(err)});
+                            break;
                         };
                     }
                 },
@@ -294,7 +330,9 @@ fn playSong() void {
 
     log.info("DONE", .{});
 
-    hand.stepper.goHome() catch unreachable;
+    hand.stepper.goHome() catch |err| {
+        log.err("goHome failed: {s}", .{@errorName(err)});
+    };
 }
 
 fn startHttpServer() !void {
