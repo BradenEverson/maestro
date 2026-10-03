@@ -11,7 +11,10 @@ const maestro_solver = @import("solver");
 const Solver = maestro_solver.Solver;
 const MaestroProgram = maestro_solver.MaestroProgram;
 
-const test_midi = @embedFile("runaway.mid");
+const MIDI_BUFFER_SIZE: usize = 1048576;
+
+var midi_buffer: [MIDI_BUFFER_SIZE]u8 = undefined;
+const song_midi = @embedFile("runaway.mid");
 
 const log = std.log.scoped(.maestro);
 extern fn esp_rom_delay_us(us: u32) void;
@@ -32,7 +35,7 @@ export fn handleRoot(req: [*c]sys.httpd_req_t) callconv(.c) sys.esp_err_t {
 
 export fn handlePlay(req: [*c]sys.httpd_req_t) callconv(.c) sys.esp_err_t {
     if (play_song) {
-        idf.http.Server.Response.sendStr(req, already_playing_html) catch |err| {
+        idf.http.Server.Response.send500() catch |err| {
             log.err("sendStr: {s}", .{@errorName(err)});
             return sys.ESP_FAIL;
         };
@@ -209,7 +212,7 @@ fn playSong() void {
     var heap: idf.heap.VPortAllocator = .init();
     const alloc = heap.allocator();
 
-    var midi = MIDI.fromBytes(alloc, test_midi) catch |err| {
+    var midi = MIDI.fromBytes(alloc, song_midi) catch |err| {
         log.err("MIDI Parse Failed {s}", .{@errorName(err)});
         return;
     };
