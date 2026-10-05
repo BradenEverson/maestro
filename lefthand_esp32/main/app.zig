@@ -25,6 +25,15 @@ const already_playing_html = @embedFile("html/busy.html");
 
 var play_song: bool = false;
 
+export fn handleSongSubmission(req: [*c]sys.httpd_req_t) callconv(.c) sys.esp_err_t {
+    log.info("Request: {}", .{req[0].content_len});
+    idf.http.Server.Response.sendStr(req, index_html) catch |err| {
+        log.err("sendStr: {s}", .{@errorName(err)});
+        return sys.ESP_FAIL;
+    };
+    return sys.ESP_OK;
+}
+
 export fn handleRoot(req: [*c]sys.httpd_req_t) callconv(.c) sys.esp_err_t {
     idf.http.Server.Response.sendStr(req, index_html) catch |err| {
         log.err("sendStr: {s}", .{@errorName(err)});
@@ -35,7 +44,7 @@ export fn handleRoot(req: [*c]sys.httpd_req_t) callconv(.c) sys.esp_err_t {
 
 export fn handlePlay(req: [*c]sys.httpd_req_t) callconv(.c) sys.esp_err_t {
     if (play_song) {
-        idf.http.Server.Response.send500() catch |err| {
+        idf.http.Server.Response.sendStr(req, already_playing_html) catch |err| {
             log.err("sendStr: {s}", .{@errorName(err)});
             return sys.ESP_FAIL;
         };
@@ -334,6 +343,14 @@ fn startHttpServer() !void {
         .user_ctx = null,
     };
     try idf.http.Server.registerUri(server, &play_uri);
+
+    const song_uri = sys.httpd_uri_t{
+        .uri = "/submit_song",
+        .method = sys.HTTP_POST,
+        .handler = &handleSongSubmission,
+        .user_ctx = null,
+    };
+    try idf.http.Server.registerUri(server, &song_uri);
 
     log.info("HTTP server started on port 80", .{});
 }
