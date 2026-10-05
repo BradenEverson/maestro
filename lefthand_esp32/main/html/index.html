@@ -4,9 +4,40 @@
         <h1>MAESTRO ON THE WEB!!!</h1>
         <p>Placeholder for now, but will soon be a sick page for controling the Maestro</p>
 
-        <form action="/submit_song" method="POST" enctype="multipart/form-data">
+        <form id="song-form">
             <input type="file" id="song" name="song" accept=".mid,.midi,audio/midi,audio/x-midi" required/>
             <button type="submit">Send Song :)</button>
         </form>
+        <p id="status"></p>
+
+        <a href="/play"><button>Play!</button></a>
+
+        <script>
+            const form = document.getElementById("song-form");
+            const input = document.getElementById("song");
+            const status = document.getElementById("status");
+
+            form.addEventListener("submit", async (e) => {
+                e.preventDefault();
+
+                const file = input.files[0];
+                if (!file) return;
+
+                status.textContent = "Uploading...";
+                try {
+                    const res = await fetch("/submit_song", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/octet-stream" },
+                        body: file,
+                    });
+
+                    status.textContent = res.ok
+                        ? `Song Set :)`
+                        : `Upload failed :((( (${res.status})`;
+                } catch (err) {
+                    status.textContent = "Upload failed: " + err.message;
+                }
+            });
+        </script>
     </body>
 </html>

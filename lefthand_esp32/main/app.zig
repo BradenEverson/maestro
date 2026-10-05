@@ -11,10 +11,10 @@ const maestro_solver = @import("solver");
 const Solver = maestro_solver.Solver;
 const MaestroProgram = maestro_solver.MaestroProgram;
 
-const MIDI_BUFFER_SIZE: usize = 1048576;
+const MIDI_BUFFER_SIZE: usize = 65536;
 
 var midi_buffer: [MIDI_BUFFER_SIZE]u8 = undefined;
-const song_midi = @embedFile("runaway.mid");
+var song_midi: ?[]u8 = null;
 
 const log = std.log.scoped(.maestro);
 extern fn esp_rom_delay_us(us: u32) void;
@@ -26,11 +26,29 @@ const already_playing_html = @embedFile("html/busy.html");
 var play_song: bool = false;
 
 export fn handleSongSubmission(req: [*c]sys.httpd_req_t) callconv(.c) sys.esp_err_t {
-    log.info("Request: {}", .{req[0].content_len});
-    idf.http.Server.Response.sendStr(req, index_html) catch |err| {
-        log.err("sendStr: {s}", .{@errorName(err)});
+    const total: usize = req[0].content_len;
+
+    if (total == 0 or total > MIDI_BUFFER_SIZE) {
+        log.err("Bad upload size: {}", .{total});
+        _ = sys.httpd_resp_send_err(req, sys.HTTPD_400_BAD_REQUEST, "Bad upload size");
         return sys.ESP_FAIL;
-    };
+    }
+
+    var received: usize = 0;
+    while (received < total) {
+        const ret = sys.httpd_req_recv(req, @ptrCast(&midi_buffer[received]), total - received);
+        if (ret == sys.HTTPD_SOCK_ERR_TIMEOUT) continue;
+        if (ret <= 0) {
+            log.err("recv failed: {}", .{ret});
+            return sys.ESP_FAIL;
+        }
+        received += @intCast(ret);
+    }
+
+    log.info("Got MIDI file: {} bytes", .{received});
+    song_midi = midi_buffer[0..received];
+
+    _ = sys.httpd_resp_sendstr(req, "OK");
     return sys.ESP_OK;
 }
 
@@ -43,7 +61,7 @@ export fn handleRoot(req: [*c]sys.httpd_req_t) callconv(.c) sys.esp_err_t {
 }
 
 export fn handlePlay(req: [*c]sys.httpd_req_t) callconv(.c) sys.esp_err_t {
-    if (play_song) {
+    if (play_song or song_midi == null) {
         idf.http.Server.Response.sendStr(req, already_playing_html) catch |err| {
             log.err("sendStr: {s}", .{@errorName(err)});
             return sys.ESP_FAIL;
@@ -221,7 +239,7 @@ fn playSong() void {
     var heap: idf.heap.VPortAllocator = .init();
     const alloc = heap.allocator();
 
-    var midi = MIDI.fromBytes(alloc, song_midi) catch |err| {
+    var midi = MIDI.fromBytes(alloc, song_midi.?) catch |err| {
         log.err("MIDI Parse Failed {s}", .{@errorName(err)});
         return;
     };
@@ -325,6 +343,8 @@ fn playSong() void {
 
 fn startHttpServer() !void {
     var config = sys.zig_httpd_default_config();
+    config.stack_size = 16384;
+    config.recv_wait_timeout = 10;
 
     const server = try idf.http.Server.start(&config);
 
